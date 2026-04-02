@@ -33,91 +33,81 @@ except ImportError:
     SMTP_PORT = int(os.environ.get('EMAIL_SMTP_PORT', '587') or '587')
 
 def fetch_page():
-    """获取网页内容"""
+    """获取API数据"""
     try:
-        # 设置Chrome选项
-        chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+        api_url = "https://bbs-api.miyoushe.com/community/ugc_community/web/api/level/full/info"
+        headers = {
+            'accept': '*/*',
+            'accept-language': 'zh-CN,zh;q=0.9',
+            'content-type': 'application/json',
+            'origin': 'https://act.miyoushe.com',
+            'priority': 'u=1, i',
+            'referer': 'https://act.miyoushe.com/',
+            'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-site',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+            'x-rpc-client_type': '4',
+            'x-rpc-language': 'zh-cn'
+        }
+        data = {
+            "level_id": "105949017109",
+            "region": "cn_gf01",
+            "uid": "",
+            "agg_req_list": [
+                {"api_name": "level_detail"}
+            ]
+        }
         
-        # 自动管理ChromeDriver
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        response = requests.post(api_url, headers=headers, json=data)
+        response.raise_for_status()
         
-        # 访问网页
-        driver.get(URL)
+        api_data = response.json()
+        print("API response received successfully")
         
-        # 等待页面加载，增加等待时间
-        time.sleep(10)
-        
-        # 滚动页面，确保所有内容加载
-        driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
-        time.sleep(5)
-        
-        # 再次滚动到顶部，确保所有内容都被加载
-        driver.execute_script('window.scrollTo(0, 0);')
-        time.sleep(3)
-        
-        html = driver.page_source
-        
-        # 打印页面长度和部分内容，用于调试
-        print(f"Page length: {len(html)}")
-        print("Page content preview:")
-        print(html[:2000])
-        
-        # 关闭浏览器
-        driver.quit()
-        
-        return html
+        return api_data
     except Exception as e:
-        print(f"Error fetching page: {e}")
+        print(f"Error fetching API data: {e}")
         # 如果获取失败，返回模拟数据
         print("Using mock data as fallback")
-        mock_html = '''
-        <html>
-        <body>
-            <taro-text-core>1</taro-text-core>
-            <taro-text-core>2</taro-text-core>
-            <taro-text-core>3</taro-text-core>
-            <taro-text-core>4</taro-text-core>
-            <taro-text-core>猜角色：猜猜我选谁</taro-text-core>
-            <taro-text-core>6</taro-text-core>
-            <taro-text-core>5803</taro-text-core>
-            <taro-text-core>95.1%</taro-text-core>
-            <taro-text-core>9</taro-text-core>
-        </body>
-        </html>
-        '''
-        return mock_html
+        mock_data = {
+            "data": {
+                "resp_map": {
+                    "level_detail": {
+                        "data": {
+                            "level_detail_response": {
+                                "level_info": {
+                                    "good_rate": "95.1%",
+                                    "hot_score": 5803
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return mock_data
 
-def parse_content(html):
-    """解析taro-text-core标签内容"""
-    soup = BeautifulSoup(html, 'html.parser')
-    taro_texts = soup.find_all('taro-text-core')
-    
-    # 打印所有找到的taro-text-core标签内容，用于调试
-    print(f"Found {len(taro_texts)} taro-text-core tags:")
-    for i, tag in enumerate(taro_texts):
-        content = tag.get_text(strip=True)
-        print(f"Index {i}: '{content}'")
-    
-    if len(taro_texts) < 8:
-        print(f"Not enough taro-text-core tags found: {len(taro_texts)}")
-        return None
-    
+def parse_content(api_data):
+    """解析API返回的JSON数据"""
     try:
-        title = taro_texts[4].get_text(strip=True)
-        value1 = taro_texts[6].get_text(strip=True)
-        value2 = taro_texts[7].get_text(strip=True)
+        # 提取数据
+        level_info = api_data['data']['resp_map']['level_detail']['data']['level_detail_response']['level_info']
+        hot_score = level_info['hot_score']
+        good_rate = level_info['good_rate']
         
-        print(f"Extracted data: title='{title}', value1='{value1}', value2='{value2}'")
+        # 固定标题
+        title = "猜角色：猜猜我选谁"
+        
+        print(f"Extracted data: title='{title}', hot_score={hot_score}, good_rate='{good_rate}'")
         
         return {
             'title': title,
-            'value1': value1,
-            'value2': value2,
+            'value1': str(hot_score),
+            'value2': good_rate,
             'timestamp': datetime.datetime.now().isoformat()
         }
     except Exception as e:
@@ -252,16 +242,14 @@ def generate_html_content(data, previous_data):
 
 def main():
     """主函数"""
-    print(f"Starting monitor at {datetime.datetime.now()}")
-    
-    # 获取网页内容
-    html = fetch_page()
-    if not html:
-        print("Failed to fetch page")
+    # 获取API数据
+    api_data = fetch_page()
+    if not api_data:
+        print("Failed to fetch API data")
         return
     
     # 解析内容
-    current_data = parse_content(html)
+    current_data = parse_content(api_data)
     if not current_data:
         print("Failed to parse content")
         return
