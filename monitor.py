@@ -26,7 +26,7 @@ except ImportError:
     EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
     EMAIL_RECIPIENT = os.environ.get('EMAIL_RECIPIENT')
     SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-    SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
+    SMTP_PORT = int(os.environ.get('SMTP_PORT', '587') or '587')
 
 def fetch_page():
     """获取网页内容"""
