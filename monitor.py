@@ -178,7 +178,7 @@ def send_email(data, previous_data=None):
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASSWORD)
             server.send_message(msg)
-            print("Email sent successfully")
+            print(f"Email sent successfully from {EMAIL_USER} to {EMAIL_RECIPIENT}")
         finally:
             server.quit()
     except Exception as e:
