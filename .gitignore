@@ -1,9 +1,6 @@
 # Local configuration file
 local_config.py
 
-# Data file
-previous_data.json
-
 # Python cache
 __pycache__/
 *.pyc
