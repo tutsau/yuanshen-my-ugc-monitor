@@ -35,34 +35,37 @@ except ImportError:
 def fetch_page():
     """获取网页内容"""
     try:
-        # 配置Chrome选项
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')  # 无头模式
+        # 设置Chrome选项
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
         
-        # 使用WebDriverManager自动管理ChromeDriver
+        # 自动管理ChromeDriver
         service = Service(ChromeDriverManager().install())
-        
-        # 创建浏览器实例
         driver = webdriver.Chrome(service=service, options=chrome_options)
+        
+        # 访问网页
         driver.get(URL)
         
-        # 等待页面加载完成
-        driver.implicitly_wait(10)
+        # 等待页面加载，增加等待时间
+        time.sleep(10)
         
-        # 等待更多时间，确保动态内容加载完成
-        import time
+        # 滚动页面，确保所有内容加载
+        driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
         time.sleep(5)
         
-        # 获取页面内容
+        # 再次滚动到顶部，确保所有内容都被加载
+        driver.execute_script('window.scrollTo(0, 0);')
+        time.sleep(3)
+        
         html = driver.page_source
         
         # 打印页面长度和部分内容，用于调试
         print(f"Page length: {len(html)}")
         print("Page content preview:")
-        print(html[:1000])
+        print(html[:2000])
         
         # 关闭浏览器
         driver.quit()
@@ -94,6 +97,12 @@ def parse_content(html):
     soup = BeautifulSoup(html, 'html.parser')
     taro_texts = soup.find_all('taro-text-core')
     
+    # 打印所有找到的taro-text-core标签内容，用于调试
+    print(f"Found {len(taro_texts)} taro-text-core tags:")
+    for i, tag in enumerate(taro_texts):
+        content = tag.get_text(strip=True)
+        print(f"Index {i}: '{content}'")
+    
     if len(taro_texts) < 8:
         print(f"Not enough taro-text-core tags found: {len(taro_texts)}")
         return None
@@ -102,6 +111,8 @@ def parse_content(html):
         title = taro_texts[4].get_text(strip=True)
         value1 = taro_texts[6].get_text(strip=True)
         value2 = taro_texts[7].get_text(strip=True)
+        
+        print(f"Extracted data: title='{title}', value1='{value1}', value2='{value2}'")
         
         return {
             'title': title,
