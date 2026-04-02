@@ -193,13 +193,14 @@ def parse_content(api_data):
         return None
 
 
-def send_email(data, previous_data=None, monitor_id=None):
+def send_email(data, previous_data=None, monitor_id=None, source=None):
     """发送变更通知邮件
     
     Args:
         data: 当前数据
         previous_data: 之前的数据
         monitor_id: 监控器ID，用于区分不同关卡
+        source: 邮件来源 ('local-test', 'workflow-schedule', 'workflow-push')
     """
     if not all([EMAIL_USER, EMAIL_PASSWORD, EMAIL_RECIPIENT]):
         print("Email configuration missing")
@@ -216,7 +217,7 @@ def send_email(data, previous_data=None, monitor_id=None):
         msg['Subject'] = subject
         
         # 生成HTML内容
-        html_content = generate_email_content(data, previous_data)
+        html_content = generate_email_content(data, previous_data, source)
         
         # 添加邮件正文
         part = MIMEText(html_content, 'html', 'utf-8')
@@ -345,12 +346,13 @@ def generate_and_send_daily_report(monitor_id=None):
     return success
 
 
-def run_monitor(monitor_config=None, force_email=False):
+def run_monitor(monitor_config=None, force_email=False, source=None):
     """运行监控任务
     
     Args:
         monitor_config: 监控器配置字典，包含 id, name, level_id, region
         force_email: 是否强制发送邮件
+        source: 邮件来源 ('local-test', 'workflow-schedule', 'workflow-push')
     """
     # 获取监控器配置
     if monitor_config:
@@ -425,7 +427,7 @@ def run_monitor(monitor_config=None, force_email=False):
         else:
             print("Sending email due to data changes...")
         # 发送邮件
-        send_email(current_data, previous_data, monitor_id)
+        send_email(current_data, previous_data, monitor_id, source)
     else:
         print("No changes detected and time span not exceeded, skipping email")
     
@@ -454,12 +456,20 @@ def main():
     parser.add_argument('--daily-report', action='store_true', help='Generate and send daily report')
     args = parser.parse_args()
     
+    # 判断邮件来源
+    source = 'local-test'
+    github_event_name = os.environ.get('GITHUB_EVENT_NAME')
+    if github_event_name == 'schedule':
+        source = 'workflow-schedule'
+    elif github_event_name == 'push':
+        source = 'workflow-push'
+    
     if args.daily_report:
         # 生成每日报告
         generate_and_send_daily_report()
     else:
         # 运行正常监控（兼容旧版本）
-        run_monitor(force_email=args.force_email)
+        run_monitor(force_email=args.force_email, source=source)
 
 
 if __name__ == "__main__":

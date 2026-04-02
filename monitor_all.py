@@ -15,7 +15,7 @@ from config import get_enabled_monitors
 from monitor import run_monitor, generate_and_send_daily_report
 
 
-def monitor_all_levels(force_email=False):
+def monitor_all_levels(force_email=False, source=None):
     """监控所有启用的关卡"""
     monitors = get_enabled_monitors()
     
@@ -34,7 +34,7 @@ def monitor_all_levels(force_email=False):
         print("-" * 60)
         
         try:
-            run_monitor(monitor_config=monitor_config, force_email=force_email)
+            run_monitor(monitor_config=monitor_config, force_email=force_email, source=source)
         except Exception as e:
             print(f"Error processing monitor {monitor_id}: {e}")
             continue
@@ -94,12 +94,20 @@ def main():
     )
     args = parser.parse_args()
     
+    # 判断邮件来源
+    source = 'local-test'
+    github_event_name = os.environ.get('GITHUB_EVENT_NAME')
+    if github_event_name == 'schedule':
+        source = 'workflow-schedule'
+    elif github_event_name == 'push':
+        source = 'workflow-push'
+    
     if args.daily_report:
         # 生成所有关卡的每日报告
         daily_report_all()
     else:
         # 监控所有启用的关卡
-        monitor_all_levels(force_email=args.force_email)
+        monitor_all_levels(force_email=args.force_email, source=source)
 
 
 if __name__ == "__main__":

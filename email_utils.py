@@ -39,11 +39,24 @@ def generate_email_subject(data, previous_data=None, monitor_id=None):
     return subject
 
 
-def generate_email_content(data, previous_data):
-    """生成邮件HTML内容，高亮变更值"""
+def generate_email_content(data, previous_data, source=None):
+    """生成邮件HTML内容，高亮变更值
+    
+    Args:
+        data: 当前数据
+        previous_data: 之前的数据
+        source: 邮件来源 ('local-test', 'workflow-schedule', 'workflow-push')
+    """
     # 获取关卡URL
     level_id = data.get('level_id', '105949017109')
     url = get_level_url(level_id)
+    
+    # 来源显示文本
+    source_text = {
+        'local-test': '本地测试（强制发送）',
+        'workflow-schedule': 'GitHub Actions 定时任务',
+        'workflow-push': 'GitHub Actions Push 触发'
+    }.get(source, '未知来源')
     
     html = f"""
     <!DOCTYPE html>
@@ -218,6 +231,7 @@ def generate_email_content(data, previous_data):
         <h3>Additional Information</h3>
         <p>Monitoring URL: <a href="{url}">{url}</a></p>
         <p>Timestamp: {data['timestamp']}</p>
+        <p><strong>来源:</strong> {source_text}</p>
     </body>
     </html>
     """
