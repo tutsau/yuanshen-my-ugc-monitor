@@ -1,6 +1,9 @@
 # Local configuration file
 local_config.py
 
+# Trae AI configuration
+.trae/
+
 # Python cache
 __pycache__/
 *.pyc
