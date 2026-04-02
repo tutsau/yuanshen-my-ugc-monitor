@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: '*/3 * * * *'  # 每3分钟执行一次
   workflow_dispatch:  # 允许手动触发
+  push:
+    branches:
+      - main  # 在main分支push时自动执行
 
 jobs:
   monitor:
