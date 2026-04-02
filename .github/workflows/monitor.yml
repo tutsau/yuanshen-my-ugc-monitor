@@ -6,7 +6,7 @@ on:
   workflow_dispatch:  # 允许手动触发
   push:
     branches:
-      - main  # 在main分支push时自动执行
+      - feat/json-store  # 在feat/json-store分支push时自动执行
 
 jobs:
   monitor:
