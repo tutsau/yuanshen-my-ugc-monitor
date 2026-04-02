@@ -4,6 +4,12 @@ local_config.py
 # Trae AI configuration
 .trae/
 
+# Schedule monitor script
+check_schedule_triggers.py
+auto_fix_workflow.py
+schedule_monitor.log
+schedule_monitor.error.log
+
 # Python cache
 __pycache__/
 *.pyc
