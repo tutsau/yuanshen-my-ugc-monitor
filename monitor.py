@@ -197,7 +197,7 @@ def generate_html_content(data, previous_data):
     </head>
     <body>
         <h2>UGC Monitor Update</h2>
-        <p>Monitoring URL: {URL}</p>
+        <p>Monitoring URL: <a href="{URL}">{URL}</a></p>
         <p>Timestamp: {data['timestamp']}</p>
         <table>
             <tr>
