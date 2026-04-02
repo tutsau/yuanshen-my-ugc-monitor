@@ -1,4 +1,4 @@
-name: UGC Monitor
+name: UGC Monitor - json-store
 
 on:
   schedule:
