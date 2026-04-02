@@ -244,11 +244,31 @@ def generate_html_content(data, previous_data):
     if previous_data and data['value1'] != previous_data['value1']:
         value1_html = f"<span class='highlight'>{data['value1']}</span>"
     
+    # 计算热度变化
+    hot_score_change = ""
+    if previous_data and prev_value1 != "N/A":
+        try:
+            change = int(data['value1']) - int(prev_value1)
+            if change > 0:
+                hot_score_change = f"<span style='color: green; font-weight: bold;'>+{change}</span>"
+            elif change < 0:
+                hot_score_change = f"<span style='color: red; font-weight: bold;'>{change}</span>"
+            else:
+                hot_score_change = "<span style='color: gray;'>0</span>"
+        except:
+            hot_score_change = "<span style='color: gray;'>N/A</span>"
+    else:
+        hot_score_change = "<span style='color: gray;'>N/A</span>"
+    
     html += f"""
             <tr>
                 <td>Hot Score</td>
                 <td>{value1_html}</td>
                 <td>{prev_value1}</td>
+            </tr>
+            <tr>
+                <td>Hot Score Change</td>
+                <td colspan='2'>{hot_score_change}</td>
             </tr>
     """
     
@@ -272,11 +292,31 @@ def generate_html_content(data, previous_data):
     if previous_data and data.get('value3') != previous_data.get('value3'):
         value3_html = f"<span class='highlight'>{data.get('value3', 'N/A')}</span>"
     
+    # 计算评论变化
+    reply_count_change = ""
+    if previous_data and prev_value3 != "N/A":
+        try:
+            change = int(data.get('value3', '0')) - int(prev_value3)
+            if change > 0:
+                reply_count_change = f"<span style='color: green; font-weight: bold;'>+{change}</span>"
+            elif change < 0:
+                reply_count_change = f"<span style='color: red; font-weight: bold;'>{change}</span>"
+            else:
+                reply_count_change = "<span style='color: gray;'>0</span>"
+        except:
+            reply_count_change = "<span style='color: gray;'>N/A</span>"
+    else:
+        reply_count_change = "<span style='color: gray;'>N/A</span>"
+    
     html += f"""
             <tr>
                 <td>Reply Count</td>
                 <td>{value3_html}</td>
                 <td>{prev_value3}</td>
+            </tr>
+            <tr>
+                <td>Reply Count Change</td>
+                <td colspan='2'>{reply_count_change}</td>
             </tr>
         </table>
         
