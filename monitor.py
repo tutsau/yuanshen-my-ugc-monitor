@@ -12,11 +12,21 @@ URL = "https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index?i
 DATA_FILE = "previous_data.json"
 
 # 邮件配置
-EMAIL_USER = os.environ.get('EMAIL_USER')
-EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
-EMAIL_RECIPIENT = os.environ.get('EMAIL_RECIPIENT')
-SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
+# 优先从本地配置文件读取，其次从环境变量读取
+try:
+    import local_config
+    EMAIL_USER = local_config.EMAIL_USER
+    EMAIL_PASSWORD = local_config.EMAIL_PASSWORD
+    EMAIL_RECIPIENT = local_config.EMAIL_RECIPIENT
+    SMTP_SERVER = getattr(local_config, 'SMTP_SERVER', 'smtp.gmail.com')
+    SMTP_PORT = getattr(local_config, 'SMTP_PORT', 587)
+except ImportError:
+    # 本地配置文件不存在，从环境变量读取
+    EMAIL_USER = os.environ.get('EMAIL_USER')
+    EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
+    EMAIL_RECIPIENT = os.environ.get('EMAIL_RECIPIENT')
+    SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+    SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
 
 def fetch_page():
     """获取网页内容"""

@@ -1,0 +1,17 @@
+# Local configuration file
+local_config.py
+
+# Data file
+previous_data.json
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
