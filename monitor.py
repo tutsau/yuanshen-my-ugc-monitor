@@ -1,15 +1,10 @@
 import os
-import requests
-from bs4 import BeautifulSoup
+import json
+import datetime
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import json
-import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
+import requests
 
 # 配置
 URL = "https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index?id=105949017109&region=cn_gf01"
