@@ -40,6 +40,7 @@ def fetch_page():
         chrome_options.add_argument('--headless')  # 无头模式
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
         
         # 使用WebDriverManager自动管理ChromeDriver
         service = Service(ChromeDriverManager().install())
@@ -51,8 +52,17 @@ def fetch_page():
         # 等待页面加载完成
         driver.implicitly_wait(10)
         
+        # 等待更多时间，确保动态内容加载完成
+        import time
+        time.sleep(5)
+        
         # 获取页面内容
         html = driver.page_source
+        
+        # 打印页面长度和部分内容，用于调试
+        print(f"Page length: {len(html)}")
+        print("Page content preview:")
+        print(html[:1000])
         
         # 关闭浏览器
         driver.quit()
