@@ -103,18 +103,54 @@ def generate_email_content(data, previous_data):
     if previous_data and data['value1'] != previous_data['value1']:
         value1_html = f"<span class='highlight'>{data['value1']}</span>"
     
-    # 计算热度变化
+    # 计算热度变化（使用数值）
     hot_score_change = ""
     if previous_data and prev_value1 != "N/A":
         try:
-            change = int(data['value1']) - int(prev_value1)
+            # 优先使用 value1_num，如果没有则使用 data_manager 的函数
+            # 先尝试导入 data_manager
+            try:
+                from data_manager import parse_hot_score
+            except ImportError:
+                # 简单的 parse_hot_score 实现
+                def parse_hot_score(hot_score):
+                    if isinstance(hot_score, int):
+                        return hot_score
+                    if isinstance(hot_score, float):
+                        return int(hot_score)
+                    if isinstance(hot_score, str):
+                        hot_score = hot_score.strip()
+                        if '万' in hot_score:
+                            num_part = hot_score.replace('万', '').strip()
+                            try:
+                                return int(float(num_part) * 10000)
+                            except ValueError:
+                                pass
+                        try:
+                            return int(float(hot_score))
+                        except ValueError:
+                            pass
+                    return 0
+            
+            # 获取当前和之前的数值
+            curr_num = data.get('value1_num')
+            if curr_num is None:
+                curr_num = parse_hot_score(data['value1'])
+            
+            prev_num = previous_data.get('value1_num')
+            if prev_num is None:
+                prev_num = parse_hot_score(prev_value1)
+            
+            change = curr_num - prev_num
+            
             if change > 0:
                 hot_score_change = f"<span style='color: green; font-weight: bold;'>+{change}</span>"
             elif change < 0:
                 hot_score_change = f"<span style='color: red; font-weight: bold;'>{change}</span>"
             else:
                 hot_score_change = "<span style='color: gray;'>0</span>"
-        except:
+        except Exception as e:
+            print(f"Error calculating hot score change: {e}")
             hot_score_change = "<span style='color: gray;'>N/A</span>"
     else:
         hot_score_change = "<span style='color: gray;'>N/A</span>"

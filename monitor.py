@@ -127,6 +127,42 @@ def fetch_page(level_id, region="cn_gf01"):
         return mock_data
 
 
+def parse_hot_score(hot_score):
+    """解析热度值，兼容 'x.x万' 格式
+    
+    Args:
+        hot_score: 可以是数字或字符串（如 "1.2万"）
+    
+    Returns:
+        int: 解析后的数字
+    """
+    if isinstance(hot_score, int):
+        return hot_score
+    
+    if isinstance(hot_score, float):
+        return int(hot_score)
+    
+    if isinstance(hot_score, str):
+        # 处理 "x.x万" 格式
+        hot_score = hot_score.strip()
+        if '万' in hot_score:
+            # 移除 "万" 字，转换为数字，然后乘以 10000
+            num_part = hot_score.replace('万', '').strip()
+            try:
+                return int(float(num_part) * 10000)
+            except ValueError:
+                pass
+        
+        # 尝试直接转换为数字
+        try:
+            return int(float(hot_score))
+        except ValueError:
+            pass
+    
+    # 如果都失败，返回 0
+    return 0
+
+
 def parse_content(api_data):
     """解析API返回的JSON数据"""
     try:
@@ -134,18 +170,20 @@ def parse_content(api_data):
         level_info = api_data['data']['resp_map']['level_detail']['data']['level_detail_response']['level_info']
         level_name = level_info['level_name']
         level_id = level_info['level_id']
-        hot_score = level_info['hot_score']
+        hot_score_raw = level_info['hot_score']
+        hot_score = parse_hot_score(hot_score_raw)
         good_rate = level_info['good_rate']
         
         # 提取评论总数
         reply_count = api_data['data']['resp_map']['reply_card']['data']['reply_card_response']['reply_count']
         
-        print(f"Extracted data: level_name='{level_name}', level_id='{level_id}', hot_score={hot_score}, good_rate='{good_rate}', reply_count={reply_count}")
+        print(f"Extracted data: level_name='{level_name}', level_id='{level_id}', hot_score_raw={hot_score_raw}, hot_score={hot_score}, good_rate='{good_rate}', reply_count={reply_count}")
         
         return {
             'title': level_name,
             'level_id': level_id,
-            'value1': str(hot_score),  # 热度值
+            'value1': str(hot_score_raw),  # 热度值（原始格式，用于显示）
+            'value1_num': hot_score,        # 热度值（数字格式，用于对比）
             'value2': good_rate,      # 好评率
             'value3': str(reply_count),  # 评论总数
             'timestamp': datetime.datetime.now().isoformat()
@@ -349,10 +387,16 @@ def run_monitor(monitor_config=None, force_email=False):
     # 获取最后一条历史记录
     last_record = get_last_record(monitor_id)
     
-    # 检查是否有变更
+    # 确保 previous_data 有 value1_num（兼容旧数据）
+    if previous_data and 'value1_num' not in previous_data:
+        # 旧数据没有 value1_num，尝试解析 value1
+        prev_value1_num = parse_hot_score(previous_data.get('value1', '0'))
+        previous_data['value1_num'] = prev_value1_num
+    
+    # 检查是否有变更（使用数值比较）
     has_changed = not previous_data or (
         current_data['title'] != previous_data['title'] or
-        current_data['value1'] != previous_data['value1'] or
+        current_data['value1_num'] != previous_data.get('value1_num') or
         current_data['value2'] != previous_data['value2'] or
         current_data['value3'] != previous_data.get('value3')
     )
