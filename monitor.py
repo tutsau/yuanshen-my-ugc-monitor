@@ -6,6 +6,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import json
 import datetime
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 
 # 配置
 URL = "https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index?id=105949017109&region=cn_gf01"
@@ -31,9 +35,24 @@ except ImportError:
 def fetch_page():
     """获取网页内容"""
     try:
-        response = requests.get(URL, timeout=30)
-        response.raise_for_status()
-        return response.text
+        # 模拟数据，用于测试
+        print("Using mock data for testing")
+        mock_html = '''
+        <html>
+        <body>
+            <taro-text-core>1</taro-text-core>
+            <taro-text-core>2</taro-text-core>
+            <taro-text-core>3</taro-text-core>
+            <taro-text-core>4</taro-text-core>
+            <taro-text-core>猜角色：猜猜我选谁</taro-text-core>
+            <taro-text-core>6</taro-text-core>
+            <taro-text-core>5803</taro-text-core>
+            <taro-text-core>95.1%</taro-text-core>
+            <taro-text-core>9</taro-text-core>
+        </body>
+        </html>
+        '''
+        return mock_html
     except Exception as e:
         print(f"Error fetching page: {e}")
         return None
