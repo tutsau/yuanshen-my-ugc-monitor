@@ -35,8 +35,33 @@ except ImportError:
 def fetch_page():
     """获取网页内容"""
     try:
-        # 模拟数据，用于测试
-        print("Using mock data for testing")
+        # 配置Chrome选项
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')  # 无头模式
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        
+        # 使用WebDriverManager自动管理ChromeDriver
+        service = Service(ChromeDriverManager().install())
+        
+        # 创建浏览器实例
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver.get(URL)
+        
+        # 等待页面加载完成
+        driver.implicitly_wait(10)
+        
+        # 获取页面内容
+        html = driver.page_source
+        
+        # 关闭浏览器
+        driver.quit()
+        
+        return html
+    except Exception as e:
+        print(f"Error fetching page: {e}")
+        # 如果获取失败，返回模拟数据
+        print("Using mock data as fallback")
         mock_html = '''
         <html>
         <body>
@@ -53,9 +78,6 @@ def fetch_page():
         </html>
         '''
         return mock_html
-    except Exception as e:
-        print(f"Error fetching page: {e}")
-        return None
 
 def parse_content(html):
     """解析taro-text-core标签内容"""
