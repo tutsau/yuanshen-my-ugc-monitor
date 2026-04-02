@@ -153,12 +153,15 @@ def send_email(data, previous_data=None):
         msg.attach(part)
         
         # 发送邮件
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        try:
+            server.connect(SMTP_SERVER, SMTP_PORT)
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASSWORD)
             server.send_message(msg)
-        
-        print("Email sent successfully")
+            print("Email sent successfully")
+        finally:
+            server.quit()
     except Exception as e:
         print(f"Error sending email: {e}")
 
