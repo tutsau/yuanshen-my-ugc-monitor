@@ -2,7 +2,7 @@ name: UGC Monitor - json-store
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # 每10分钟执行一次
+    - cron: '20,40 * * * *'  # 每个小时的20分和40分执行
   workflow_dispatch:  # 允许手动触发
   push:
     branches:
@@ -36,14 +36,3 @@ jobs:
           EMAIL_SMTP_PORT: ${{ secrets.EMAIL_SMTP_PORT }}
         run: python monitor.py
         
-      - name: Commit and push changes
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          if [ -f "previous_data.json" ]; then
-            git add previous_data.json
-            git commit -m 'Update monitor data' || echo 'No changes to commit'
-            git push
-          else
-            echo 'previous_data.json not found, skipping commit'
-          fi

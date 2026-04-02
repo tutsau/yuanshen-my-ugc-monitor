@@ -1,6 +1,9 @@
 # Local configuration file
 local_config.py
 
+# Local data file (data is stored in separate repo)
+previous_data.json
+
 # Trae AI configuration
 .trae/
 
