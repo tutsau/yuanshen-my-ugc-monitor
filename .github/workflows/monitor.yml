@@ -47,6 +47,16 @@ jobs:
           EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          GIST_ID: ${{ secrets.GIST_ID }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python monitor.py
+        
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          if [ -f "previous_data.json" ]; then
+            git add previous_data.json
+            git commit -m 'Update monitor data' || echo 'No changes to commit'
+            git push
+          else
+            echo 'previous_data.json not found, skipping commit'
+          fi
