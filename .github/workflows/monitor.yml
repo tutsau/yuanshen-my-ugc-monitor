@@ -43,9 +43,12 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
-          EMAIL_SMTP_SERVER: ${{ secrets.EMAIL_SMTP_SERVER }}
-          EMAIL_SMTP_PORT: ${{ secrets.EMAIL_SMTP_PORT }}
-        run: python monitor.py
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER || 'smtp.qq.com' }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT || 587 }}
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER || 'tutsau' }}
+          DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME || 'yuanshen-my-ugc-monitor-data' }}
+        run: python monitor_all.py
         
       - name: Run daily report
         if: github.event.schedule == '0 8 * * *' || github.event.inputs.task_type == 'daily-report'
@@ -53,6 +56,9 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
-          EMAIL_SMTP_SERVER: ${{ secrets.EMAIL_SMTP_SERVER }}
-          EMAIL_SMTP_PORT: ${{ secrets.EMAIL_SMTP_PORT }}
-        run: python monitor.py --daily-report
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER || 'smtp.qq.com' }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT || 587 }}
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER || 'tutsau' }}
+          DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME || 'yuanshen-my-ugc-monitor-data' }}
+        run: python monitor_all.py --daily-report
