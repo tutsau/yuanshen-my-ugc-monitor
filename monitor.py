@@ -38,7 +38,7 @@ def fetch_page():
         api_url = "https://bbs-api.miyoushe.com/community/ugc_community/web/api/level/full/info"
         headers = {
             'accept': '*/*',
-            'accept-language': 'zh-CN,zh;q=0.9',
+            'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
             'content-type': 'application/json',
             'origin': 'https://act.miyoushe.com',
             'priority': 'u=1, i',
@@ -58,7 +58,8 @@ def fetch_page():
             "region": "cn_gf01",
             "uid": "",
             "agg_req_list": [
-                {"api_name": "level_detail"}
+                {"api_name": "level_detail"},
+                {"api_name": "reply_card"}
             ]
         }
         
@@ -80,9 +81,18 @@ def fetch_page():
                         "data": {
                             "level_detail_response": {
                                 "level_info": {
+                                    "level_name": "猜角色：猜猜我选谁",
+                                    "level_id": "105949017109",
                                     "good_rate": "95.1%",
                                     "hot_score": 5803
                                 }
+                            }
+                        }
+                    },
+                    "reply_card": {
+                        "data": {
+                            "reply_card_response": {
+                                "reply_count": 123
                             }
                         }
                     }
@@ -96,18 +106,22 @@ def parse_content(api_data):
     try:
         # 提取数据
         level_info = api_data['data']['resp_map']['level_detail']['data']['level_detail_response']['level_info']
+        level_name = level_info['level_name']
+        level_id = level_info['level_id']
         hot_score = level_info['hot_score']
         good_rate = level_info['good_rate']
         
-        # 固定标题
-        title = "猜角色：猜猜我选谁"
+        # 提取评论总数
+        reply_count = api_data['data']['resp_map']['reply_card']['data']['reply_card_response']['reply_count']
         
-        print(f"Extracted data: title='{title}', hot_score={hot_score}, good_rate='{good_rate}'")
+        print(f"Extracted data: level_name='{level_name}', level_id='{level_id}', hot_score={hot_score}, good_rate='{good_rate}', reply_count={reply_count}")
         
         return {
-            'title': title,
-            'value1': str(hot_score),
-            'value2': good_rate,
+            'title': level_name,
+            'level_id': level_id,
+            'value1': str(hot_score),  # 热度值
+            'value2': good_rate,      # 好评率
+            'value3': str(reply_count),  # 评论总数
             'timestamp': datetime.datetime.now().isoformat()
         }
     except Exception as e:
@@ -193,7 +207,21 @@ def generate_html_content(data, previous_data):
             </tr>
     """
     
-    # 处理标题
+    # 处理关卡ID
+    level_id_html = data.get('level_id', 'N/A')
+    prev_level_id = previous_data.get('level_id', 'N/A') if previous_data else "N/A"
+    if previous_data and data.get('level_id') != previous_data.get('level_id'):
+        level_id_html = f"<span class='highlight'>{data.get('level_id', 'N/A')}</span>"
+    
+    html += f"""
+            <tr>
+                <td>Level ID</td>
+                <td>{level_id_html}</td>
+                <td>{prev_level_id}</td>
+            </tr>
+    """
+    
+    # 处理关卡名称
     title_html = data['title']
     prev_title = previous_data['title'] if previous_data else "N/A"
     if previous_data and data['title'] != previous_data['title']:
@@ -201,13 +229,13 @@ def generate_html_content(data, previous_data):
     
     html += f"""
             <tr>
-                <td>Title</td>
+                <td>Level Name</td>
                 <td>{title_html}</td>
                 <td>{prev_title}</td>
             </tr>
     """
     
-    # 处理第一个值
+    # 处理热度值
     value1_html = data['value1']
     prev_value1 = previous_data['value1'] if previous_data else "N/A"
     if previous_data and data['value1'] != previous_data['value1']:
@@ -215,13 +243,13 @@ def generate_html_content(data, previous_data):
     
     html += f"""
             <tr>
-                <td>Value 1</td>
+                <td>Hot Score</td>
                 <td>{value1_html}</td>
                 <td>{prev_value1}</td>
             </tr>
     """
     
-    # 处理第二个值
+    # 处理好评率
     value2_html = data['value2']
     prev_value2 = previous_data['value2'] if previous_data else "N/A"
     if previous_data and data['value2'] != previous_data['value2']:
@@ -229,9 +257,23 @@ def generate_html_content(data, previous_data):
     
     html += f"""
             <tr>
-                <td>Value 2</td>
+                <td>Good Rate</td>
                 <td>{value2_html}</td>
                 <td>{prev_value2}</td>
+            </tr>
+    """
+    
+    # 处理评论总数
+    value3_html = data.get('value3', 'N/A')
+    prev_value3 = previous_data.get('value3', 'N/A') if previous_data else "N/A"
+    if previous_data and data.get('value3') != previous_data.get('value3'):
+        value3_html = f"<span class='highlight'>{data.get('value3', 'N/A')}</span>"
+    
+    html += f"""
+            <tr>
+                <td>Reply Count</td>
+                <td>{value3_html}</td>
+                <td>{prev_value3}</td>
             </tr>
         </table>
     </body>
@@ -261,7 +303,8 @@ def main():
     has_changed = not previous_data or (
         current_data['title'] != previous_data['title'] or
         current_data['value1'] != previous_data['value1'] or
-        current_data['value2'] != previous_data['value2']
+        current_data['value2'] != previous_data['value2'] or
+        current_data['value3'] != previous_data.get('value3')
     )
     
     if has_changed:
