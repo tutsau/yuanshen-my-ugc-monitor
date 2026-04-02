@@ -14,6 +14,8 @@ from selenium.webdriver.chrome.service import Service
 # 配置
 URL = "https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index?id=105949017109&region=cn_gf01"
 DATA_FILE = "previous_data.json"
+GIST_ID = os.environ.get('GIST_ID')
+GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
 
 # 邮件配置
 # 优先从本地配置文件读取，其次从环境变量读取
@@ -105,6 +107,20 @@ def parse_content(html):
 
 def load_previous_data():
     """加载上次查询的数据"""
+    # 优先从GitHub Gist加载
+    if GIST_ID and GITHUB_TOKEN:
+        try:
+            headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+            response = requests.get(f'https://api.github.com/gists/{GIST_ID}', headers=headers, timeout=10)
+            if response.status_code == 200:
+                gist = response.json()
+                if 'files' in gist and 'previous_data.json' in gist['files']:
+                    content = gist['files']['previous_data.json']['content']
+                    return json.loads(content)
+        except Exception as e:
+            print(f"Error loading data from Gist: {e}")
+    
+    #  fallback到本地文件
     try:
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, 'r', encoding='utf-8') as f:
@@ -115,10 +131,29 @@ def load_previous_data():
 
 def save_data(data):
     """保存数据"""
+    # 优先保存到GitHub Gist
+    if GIST_ID and GITHUB_TOKEN:
+        try:
+            headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+            gist_data = {
+                'files': {
+                    'previous_data.json': {
+                        'content': json.dumps(data, ensure_ascii=False, indent=2)
+                    }
+                }
+            }
+            response = requests.patch(f'https://api.github.com/gists/{GIST_ID}', headers=headers, json=gist_data, timeout=10)
+            if response.status_code == 200:
+                print("Data saved to Gist successfully")
+                return
+        except Exception as e:
+            print(f"Error saving data to Gist: {e}")
+    
+    # fallback到本地文件
     try:
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        print("Data saved successfully")
+        print("Data saved to local file successfully")
     except Exception as e:
         print(f"Error saving data: {e}")
 

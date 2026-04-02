@@ -40,6 +40,8 @@
 - `EMAIL_RECIPIENT`：收件人邮箱地址
 - `SMTP_SERVER`：SMTP服务器地址（默认：smtp.gmail.com）
 - `SMTP_PORT`：SMTP服务器端口（默认：587）
+- `GIST_ID`：GitHub Gist ID（用于存储监控数据）
+- `GITHUB_TOKEN`：GitHub个人访问令牌（需要gist权限）
 
 ### 2. 配置定时任务
 
