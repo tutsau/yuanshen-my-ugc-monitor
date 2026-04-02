@@ -47,8 +47,8 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
-          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          EMAIL_SMTP_SERVER: ${{ secrets.EMAIL_SMTP_SERVER }}
+          EMAIL_SMTP_PORT: ${{ secrets.EMAIL_SMTP_PORT }}
         run: python monitor.py
         
       - name: Commit and push changes
