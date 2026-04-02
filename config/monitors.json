@@ -1,0 +1,11 @@
+{
+  "monitors": [
+    {
+      "id": "level_105949017109",
+      "name": "猜角色：猜猜我选谁",
+      "level_id": "105949017109",
+      "region": "cn_gf01",
+      "enabled": true
+    }
+  ]
+}

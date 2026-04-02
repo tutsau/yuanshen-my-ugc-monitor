@@ -2,8 +2,18 @@ name: UGC Monitor - json-store
 
 on:
   schedule:
-    - cron: '20,40 * * * *'  # 每个小时的20分和40分执行
+    - cron: '0,30 * * * *'  # 每个小时的00分和30分执行监控
+    - cron: '0 8 * * *'      # 每天08:00执行日报
   workflow_dispatch:  # 允许手动触发
+    inputs:
+      task_type:
+        description: 'Task type to run'
+        required: true
+        default: 'monitor'
+        type: choice
+        options:
+          - monitor
+          - daily-report
   push:
     branches:
       - feat/json-store  # 在feat/json-store分支push时自动执行
@@ -25,9 +35,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install requests
+          python -m pip install requests matplotlib
           
       - name: Run monitor script
+        if: github.event.schedule != '0 8 * * *' && github.event.inputs.task_type != 'daily-report'
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
@@ -36,3 +47,12 @@ jobs:
           EMAIL_SMTP_PORT: ${{ secrets.EMAIL_SMTP_PORT }}
         run: python monitor.py
         
+      - name: Run daily report
+        if: github.event.schedule == '0 8 * * *' || github.event.inputs.task_type == 'daily-report'
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+          EMAIL_SMTP_SERVER: ${{ secrets.EMAIL_SMTP_SERVER }}
+          EMAIL_SMTP_PORT: ${{ secrets.EMAIL_SMTP_PORT }}
+        run: python monitor.py --daily-report
