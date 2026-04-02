@@ -158,7 +158,16 @@ def send_email(data, previous_data=None):
         msg = MIMEMultipart('alternative')
         msg['From'] = EMAIL_USER
         msg['To'] = EMAIL_RECIPIENT
-        msg['Subject'] = f"【千星奇域】{data['title']}数据更新 - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        # 构建邮件标题，包含关键变化信息
+        if previous_data:
+            hot_score_change = "↑" if data['value1'] > previous_data.get('value1', '0') else "↓" if data['value1'] < previous_data.get('value1', '0') else "-"
+            reply_count_change = "↑" if data.get('value3', '0') > previous_data.get('value3', '0') else "↓" if data.get('value3', '0') < previous_data.get('value3', '0') else "-"
+            subject = f"【千星奇域】{data['title']} 热度{hot_score_change}{data['value1']} 评论{reply_count_change}{data.get('value3', '0')}"
+        else:
+            subject = f"【千星奇域】{data['title']} 热度{data['value1']} 评论{data.get('value3', '0')}"
+        
+        msg['Subject'] = subject
         
         # 生成HTML内容
         html_content = generate_html_content(data, previous_data)
@@ -197,8 +206,7 @@ def generate_html_content(data, previous_data):
     </head>
     <body>
         <h2>UGC Monitor Update</h2>
-        <p>Monitoring URL: <a href="{URL}">{URL}</a></p>
-        <p>Timestamp: {data['timestamp']}</p>
+        <h3>Key Changes</h3>
         <table>
             <tr>
                 <th>Field</th>
@@ -276,6 +284,10 @@ def generate_html_content(data, previous_data):
                 <td>{prev_value3}</td>
             </tr>
         </table>
+        
+        <h3>Additional Information</h3>
+        <p>Monitoring URL: <a href="{URL}">{URL}</a></p>
+        <p>Timestamp: {data['timestamp']}</p>
     </body>
     </html>
     """
