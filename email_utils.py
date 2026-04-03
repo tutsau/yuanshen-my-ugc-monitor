@@ -8,6 +8,9 @@ Supports multiple level monitoring
 import datetime
 from email.mime.image import MIMEImage
 
+# 导入通用工具函数
+from utils import parse_hot_score
+
 
 def get_level_url(level_id, region="cn_gf01"):
     """生成关卡详情页URL
@@ -62,31 +65,6 @@ def generate_email_content(data, previous_data, source=None):
     hot_score_change_text = "N/A"
     if previous_data and prev_value1 != "N/A":
         try:
-            # 优先使用 value1_num，如果没有则使用 data_manager 的函数
-            # 先尝试导入 data_manager
-            try:
-                from data_manager import parse_hot_score
-            except ImportError:
-                # 简单的 parse_hot_score 实现
-                def parse_hot_score(hot_score):
-                    if isinstance(hot_score, int):
-                        return hot_score
-                    if isinstance(hot_score, float):
-                        return int(hot_score)
-                    if isinstance(hot_score, str):
-                        hot_score = hot_score.strip()
-                        if '万' in hot_score:
-                            num_part = hot_score.replace('万', '').strip()
-                            try:
-                                return int(float(num_part) * 10000)
-                            except ValueError:
-                                pass
-                        try:
-                            return int(float(hot_score))
-                        except ValueError:
-                            pass
-                    return 0
-            
             # 获取当前和之前的数值
             curr_num = data.get('value1_num')
             if curr_num is None:
@@ -196,31 +174,6 @@ def generate_email_content(data, previous_data, source=None):
     hot_score_change = ""
     if previous_data and prev_value1 != "N/A":
         try:
-            # 优先使用 value1_num，如果没有则使用 data_manager 的函数
-            # 先尝试导入 data_manager
-            try:
-                from data_manager import parse_hot_score
-            except ImportError:
-                # 简单的 parse_hot_score 实现
-                def parse_hot_score(hot_score):
-                    if isinstance(hot_score, int):
-                        return hot_score
-                    if isinstance(hot_score, float):
-                        return int(hot_score)
-                    if isinstance(hot_score, str):
-                        hot_score = hot_score.strip()
-                        if '万' in hot_score:
-                            num_part = hot_score.replace('万', '').strip()
-                            try:
-                                return int(float(num_part) * 10000)
-                            except ValueError:
-                                pass
-                        try:
-                            return int(float(hot_score))
-                        except ValueError:
-                            pass
-                    return 0
-            
             # 获取当前和之前的数值
             curr_num = data.get('value1_num')
             if curr_num is None:
