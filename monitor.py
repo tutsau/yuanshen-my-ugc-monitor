@@ -62,79 +62,76 @@ print(f"SMTP_SERVER: {SMTP_SERVER}")
 print(f"SMTP_PORT: {SMTP_PORT}")
 
 
-def fetch_page(level_id, region="cn_gf01"):
-    """获取API数据
+def fetch_page(level_id, region="cn_gf01", monitor_config=None, max_retries=3):
+    """获取页面数据
     
     Args:
         level_id: 关卡ID
         region: 区域代码，默认为 cn_gf01
+        monitor_config: 监控器配置
+        max_retries: 最大重试次数
     """
-    try:
-        api_url = "https://bbs-api.miyoushe.com/community/ugc_community/web/api/level/full/info"
-        headers = {
-            'accept': '*/*',
-            'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'content-type': 'application/json',
-            'origin': 'https://act.miyoushe.com',
-            'priority': 'u=1, i',
-            'referer': 'https://act.miyoushe.com/',
-            'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-site',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
-            'x-rpc-client_type': '4',
-            'x-rpc-language': 'zh-cn'
-        }
-        data = {
-            "level_id": level_id,
-            "region": region,
-            "uid": "",
-            "agg_req_list": [
-                {"api_name": "level_detail"},
-                {"api_name": "reply_card"}
-            ]
-        }
-        
-        response = requests.post(api_url, headers=headers, json=data)
-        response.raise_for_status()
-        
-        api_data = response.json()
-        print(f"API response received successfully for level_id={level_id}")
-        
-        return api_data
-    except Exception as e:
-        print(f"Error fetching API data for level_id={level_id}: {e}")
-        # 如果获取失败，返回模拟数据
-        print("Using mock data as fallback")
-        mock_data = {
-            "data": {
-                "resp_map": {
-                    "level_detail": {
-                        "data": {
-                            "level_detail_response": {
-                                "level_info": {
-                                    "level_name": f"关卡 {level_id}",
-                                    "level_id": level_id,
-                                    "good_rate": "95.1%",
-                                    "hot_score": 5803
-                                }
-                            }
-                        }
-                    },
-                    "reply_card": {
-                        "data": {
-                            "reply_card_response": {
-                                "reply_count": 123
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return mock_data
+    # 获取关卡名称，优先使用监控器配置中的名称
+    level_name = f"关卡 {level_id}"
+    if monitor_config and monitor_config.get('name'):
+        level_name = monitor_config['name']
+    
+    api_url = "https://bbs-api.miyoushe.com/community/ugc_community/web/api/level/full/info"
+    headers = {
+        'accept': '*/*',
+        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'content-type': 'application/json',
+        'origin': 'https://act.miyoushe.com',
+        'priority': 'u=1, i',
+        'referer': 'https://act.miyoushe.com/',
+        'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+        'x-rpc-client_type': '4',
+        'x-rpc-language': 'zh-cn'
+    }
+    data = {
+        "level_id": level_id,
+        "region": region,
+        "uid": "",
+        "agg_req_list": [
+            {"api_name": "level_detail"},
+            {"api_name": "reply_card"}
+        ]
+    }
+    
+    print(f"[INFO] Starting to fetch API data for level_id={level_id}, region={region}")
+    print(f"[INFO] Target API URL: {api_url}")
+    
+    for retry in range(max_retries):
+        try:
+            print(f"[INFO] Attempt {retry + 1}/{max_retries}")
+            response = requests.post(api_url, headers=headers, json=data, timeout=30)
+            print(f"[INFO] API response status code: {response.status_code}")
+            
+            response.raise_for_status()
+            
+            api_data = response.json()
+            print(f"[INFO] API response received successfully for level_id={level_id}")
+            print(f"[INFO] API response keys: {list(api_data.keys())}")
+            if 'data' in api_data and 'resp_map' in api_data['data']:
+                print(f"[INFO] resp_map keys: {list(api_data['data']['resp_map'].keys())}")
+            
+            return api_data
+        except requests.exceptions.RequestException as e:
+            print(f"[ERROR] Error fetching API data (attempt {retry + 1}/{max_retries}): {e}")
+            if retry < max_retries - 1:
+                import time
+                wait_time = 1
+                print(f"[INFO] Retrying in {wait_time} second(s)...")
+                time.sleep(wait_time)
+            else:
+                print(f"[ERROR] All {max_retries} attempts failed")
+                return None
 
 
 def parse_content(api_data):
@@ -352,28 +349,54 @@ def run_monitor(monitor_config=None, force_email=False, source=None):
     print("=" * 50)
     
     # 获取API数据
-    api_data = fetch_page(level_id, region)
+    api_data = fetch_page(level_id, region, monitor_config)
     if not api_data:
-        print(f"Failed to fetch API data for {monitor_id}")
+        print(f"[ERROR] Failed to fetch API data for {monitor_id} after 3 attempts")
+        print(f"[ERROR] 接口调用失败，未取到数据")
         return
     
     # 解析内容
     current_data = parse_content(api_data)
     if not current_data:
-        print(f"Failed to parse content for {monitor_id}")
+        print(f"[ERROR] Failed to parse content for {monitor_id}")
         return
     
+    print(f"[INFO] Current data parsed successfully:")
+    print(f"[INFO]   Title: {current_data.get('title')}")
+    print(f"[INFO]   Level ID: {current_data.get('level_id')}")
+    print(f"[INFO]   Hot Score: {current_data.get('value1')} (num: {current_data.get('value1_num')})")
+    print(f"[INFO]   Good Rate: {current_data.get('value2')}")
+    print(f"[INFO]   Reply Count: {current_data.get('value3')}")
+    print(f"[INFO]   Timestamp: {current_data.get('timestamp')}")
+    
     # 加载上次数据
+    print(f"[INFO] Loading previous data for {monitor_id}...")
     previous_data = load_previous_data(monitor_id)
     
+    if previous_data:
+        print(f"[INFO] Previous data loaded successfully:")
+        print(f"[INFO]   Title: {previous_data.get('title')}")
+        print(f"[INFO]   Hot Score: {previous_data.get('value1')} (num: {previous_data.get('value1_num')})")
+        print(f"[INFO]   Good Rate: {previous_data.get('value2')}")
+        print(f"[INFO]   Reply Count: {previous_data.get('value3')}")
+        print(f"[INFO]   Timestamp: {previous_data.get('timestamp')}")
+    else:
+        print(f"[INFO] No previous data found for {monitor_id}")
+    
     # 获取最后一条历史记录
+    print(f"[INFO] Getting last record for {monitor_id}...")
     last_record = get_last_record(monitor_id)
+    if last_record:
+        print(f"[INFO] Last record found: {last_record.get('timestamp')}")
+    else:
+        print(f"[INFO] No last record found for {monitor_id}")
     
     # 确保 previous_data 有 value1_num（兼容旧数据）
     if previous_data and 'value1_num' not in previous_data:
         # 旧数据没有 value1_num，尝试解析 value1
         prev_value1_num = parse_hot_score(previous_data.get('value1', '0'))
         previous_data['value1_num'] = prev_value1_num
+        print(f"[INFO] Added value1_num to previous data: {prev_value1_num}")
     
     # 检查是否有变更（使用数值比较）
     has_changed = not previous_data or (
@@ -382,6 +405,8 @@ def run_monitor(monitor_config=None, force_email=False, source=None):
         current_data['value2'] != previous_data['value2'] or
         current_data['value3'] != previous_data.get('value3')
     )
+    
+    print(f"[INFO] Data change check: {has_changed}")
     
     # 检查时间跨度是否超过1小时
     time_span_exceeded = False
@@ -394,9 +419,11 @@ def run_monitor(monitor_config=None, force_email=False, source=None):
             time_diff = current_time - last_time
             if time_diff >= datetime.timedelta(hours=1):
                 time_span_exceeded = True
-                print(f"Time span exceeded: last record was {time_diff.total_seconds()/3600:.1f} hours ago")
+                print(f"[INFO] Time span exceeded: last record was {time_diff.total_seconds()/3600:.1f} hours ago")
+            else:
+                print(f"[INFO] Time span within limit: last record was {time_diff.total_seconds()/3600:.1f} hours ago")
         except Exception as e:
-            print(f"Error checking time span from last record: {e}")
+            print(f"[ERROR] Error checking time span from last record: {e}")
     
     # 同时检查previous_data的时间
     if previous_data and 'timestamp' in previous_data:
@@ -405,45 +432,60 @@ def run_monitor(monitor_config=None, force_email=False, source=None):
             time_diff = current_time - prev_time
             if time_diff >= datetime.timedelta(hours=1):
                 time_span_exceeded = True
-                print(f"Time span exceeded: previous data was {time_diff.total_seconds()/3600:.1f} hours ago")
+                print(f"[INFO] Time span exceeded: previous data was {time_diff.total_seconds()/3600:.1f} hours ago")
+            else:
+                print(f"[INFO] Time span within limit: previous data was {time_diff.total_seconds()/3600:.1f} hours ago")
         except Exception as e:
-            print(f"Error checking time span from previous data: {e}")
+            print(f"[ERROR] Error checking time span from previous data: {e}")
     
     # 没有任何记录，视为时间跨度超过1小时
     if not last_record and not previous_data:
         time_span_exceeded = True
-        print("No previous record or data found, treating as time span exceeded")
+        print("[INFO] No previous record or data found, treating as time span exceeded")
+    
+    print(f"[INFO] Time span exceeded check: {time_span_exceeded}")
     
     # 决定是否发送邮件：数据变更、强制发送、或时间跨度超过1小时
     should_send_email = has_changed or force_email or time_span_exceeded
     
+    print(f"[INFO] Should send email: {should_send_email}")
+    
     if should_send_email:
         if force_email:
-            print("Forcing email send due to command line argument...")
+            print("[INFO] Forcing email send due to command line argument...")
         elif time_span_exceeded:
-            print("Sending email due to time span exceeded (more than 1 hour)...")
+            print("[INFO] Sending email due to time span exceeded (more than 1 hour)...")
         else:
-            print("Sending email due to data changes...")
+            print("[INFO] Sending email due to data changes...")
         # 发送邮件
+        print("[INFO] Preparing to send email...")
         send_email(current_data, previous_data, monitor_id, source)
+        print("[INFO] Email send process completed")
     else:
-        print("No changes detected and time span not exceeded, skipping email")
+        print("[INFO] No changes detected and time span not exceeded, skipping email")
     
     # 保存当前数据
+    print("[INFO] Saving current data to remote repo...")
     save_data(current_data, monitor_id)
+    print("[INFO] Data save process completed")
     
     # 追加到历史数据：数据变更、或时间跨度超过1小时
     should_append_history = has_changed or time_span_exceeded
+    print(f"[INFO] Should append history: {should_append_history}")
+    
     if should_append_history:
-        print("Appending to history data...")
+        print("[INFO] Appending to history data...")
         append_history_data(current_data, monitor_id)
+        print("[INFO] History append process completed")
     else:
-        print("Skipping history append (no changes and time span not exceeded)")
+        print("[INFO] Skipping history append (no changes and time span not exceeded)")
     
     if has_changed:
-        print("Data has changed")
+        print("[INFO] Data has changed")
     else:
-        print("No changes detected")
+        print("[INFO] No changes detected")
+    
+    print("[INFO] Monitor task completed successfully")
 
 
 def main():
