@@ -41,15 +41,23 @@ try:
     EMAIL_USER = local_config.EMAIL_USER
     EMAIL_PASSWORD = local_config.EMAIL_PASSWORD
     EMAIL_RECIPIENT = local_config.EMAIL_RECIPIENT
-    SMTP_SERVER = getattr(local_config, 'SMTP_SERVER', 'smtp.gmail.com')
+    SMTP_SERVER = getattr(local_config, 'SMTP_SERVER', 'smtp.qq.com')
     SMTP_PORT = getattr(local_config, 'SMTP_PORT', 587)
 except ImportError:
     # 本地配置文件不存在，从环境变量读取
     EMAIL_USER = os.environ.get('EMAIL_USER')
     EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
     EMAIL_RECIPIENT = os.environ.get('EMAIL_RECIPIENT')
-    SMTP_SERVER = os.environ.get('EMAIL_SMTP_SERVER', 'smtp.gmail.com')
-    SMTP_PORT = int(os.environ.get('EMAIL_SMTP_PORT', '587') or '587')
+    # 支持多种环境变量名称，优先使用 SMTP_SERVER，其次 EMAIL_SMTP_SERVER
+    SMTP_SERVER = os.environ.get('SMTP_SERVER', os.environ.get('EMAIL_SMTP_SERVER', 'smtp.qq.com'))
+    SMTP_PORT = int(os.environ.get('SMTP_PORT', os.environ.get('EMAIL_SMTP_PORT', '587')))
+
+# 打印邮件配置信息（不包含密码）
+print(f"Email configuration:")
+print(f"EMAIL_USER: {EMAIL_USER}")
+print(f"EMAIL_RECIPIENT: {EMAIL_RECIPIENT}")
+print(f"SMTP_SERVER: {SMTP_SERVER}")
+print(f"SMTP_PORT: {SMTP_PORT}")
 
 
 def fetch_page(level_id, region="cn_gf01"):
@@ -204,6 +212,10 @@ def send_email(data, previous_data=None, monitor_id=None, source=None):
     """
     if not all([EMAIL_USER, EMAIL_PASSWORD, EMAIL_RECIPIENT]):
         print("Email configuration missing")
+        print(f"EMAIL_USER: {EMAIL_USER}")
+        print(f"EMAIL_RECIPIENT: {EMAIL_RECIPIENT}")
+        print(f"SMTP_SERVER: {SMTP_SERVER}")
+        print(f"SMTP_PORT: {SMTP_PORT}")
         return
     
     try:
@@ -226,7 +238,6 @@ def send_email(data, previous_data=None, monitor_id=None, source=None):
         # 发送邮件
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
         try:
-            server.connect(SMTP_SERVER, SMTP_PORT)
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASSWORD)
             server.send_message(msg)
@@ -247,6 +258,10 @@ def send_daily_report_email(data_list, statistics, monitor_id=None):
     """
     if not all([EMAIL_USER, EMAIL_PASSWORD, EMAIL_RECIPIENT]):
         print("Email configuration missing")
+        print(f"EMAIL_USER: {EMAIL_USER}")
+        print(f"EMAIL_RECIPIENT: {EMAIL_RECIPIENT}")
+        print(f"SMTP_SERVER: {SMTP_SERVER}")
+        print(f"SMTP_PORT: {SMTP_PORT}")
         return False
     
     if not data_list or len(data_list) < 2:
@@ -294,7 +309,6 @@ def send_daily_report_email(data_list, statistics, monitor_id=None):
         print("Sending daily report email...")
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
         try:
-            server.connect(SMTP_SERVER, SMTP_PORT)
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASSWORD)
             server.send_message(msg)
@@ -405,16 +419,34 @@ def run_monitor(monitor_config=None, force_email=False, source=None):
     
     # 检查时间跨度是否超过1小时
     time_span_exceeded = False
+    current_time = datetime.datetime.now()
+    
+    # 检查历史记录的时间
     if last_record:
         try:
             last_time = datetime.datetime.fromisoformat(last_record['timestamp'])
-            current_time = datetime.datetime.now()
             time_diff = current_time - last_time
             if time_diff >= datetime.timedelta(hours=1):
                 time_span_exceeded = True
                 print(f"Time span exceeded: last record was {time_diff.total_seconds()/3600:.1f} hours ago")
         except Exception as e:
-            print(f"Error checking time span: {e}")
+            print(f"Error checking time span from last record: {e}")
+    
+    # 同时检查previous_data的时间
+    if previous_data and 'timestamp' in previous_data:
+        try:
+            prev_time = datetime.datetime.fromisoformat(previous_data['timestamp'])
+            time_diff = current_time - prev_time
+            if time_diff >= datetime.timedelta(hours=1):
+                time_span_exceeded = True
+                print(f"Time span exceeded: previous data was {time_diff.total_seconds()/3600:.1f} hours ago")
+        except Exception as e:
+            print(f"Error checking time span from previous data: {e}")
+    
+    # 没有任何记录，视为时间跨度超过1小时
+    if not last_record and not previous_data:
+        time_span_exceeded = True
+        print("No previous record or data found, treating as time span exceeded")
     
     # 决定是否发送邮件：数据变更、强制发送、或时间跨度超过1小时
     should_send_email = has_changed or force_email or time_span_exceeded
