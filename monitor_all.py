@@ -102,13 +102,15 @@ def main():
     elif github_event_name == 'push':
         source = 'workflow-push'
     
-    # 当由push触发时，强制发送邮件
+    # 当由push触发时，强制发送邮件并生成日报
     force_email = args.force_email
     if github_event_name == 'push':
         force_email = True
         print("Force sending email due to push trigger")
-    
-    if args.daily_report:
+        # 强制生成日报
+        print("Forcing daily report generation due to push trigger")
+        daily_report_all()
+    elif args.daily_report:
         # 生成所有关卡的每日报告
         daily_report_all()
     else:
