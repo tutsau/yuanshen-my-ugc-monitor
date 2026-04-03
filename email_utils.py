@@ -58,6 +58,81 @@ def generate_email_content(data, previous_data, source=None):
         'workflow-push': 'GitHub Actions Push 触发'
     }.get(source, '未知来源')
     
+    # 计算热度变化值和评论变化值的纯文本形式（用于摘要）
+    hot_score_change_text = "N/A"
+    if previous_data and prev_value1 != "N/A":
+        try:
+            # 优先使用 value1_num，如果没有则使用 data_manager 的函数
+            # 先尝试导入 data_manager
+            try:
+                from data_manager import parse_hot_score
+            except ImportError:
+                # 简单的 parse_hot_score 实现
+                def parse_hot_score(hot_score):
+                    if isinstance(hot_score, int):
+                        return hot_score
+                    if isinstance(hot_score, float):
+                        return int(hot_score)
+                    if isinstance(hot_score, str):
+                        hot_score = hot_score.strip()
+                        if '万' in hot_score:
+                            num_part = hot_score.replace('万', '').strip()
+                            try:
+                                return int(float(num_part) * 10000)
+                            except ValueError:
+                                pass
+                        try:
+                            return int(float(hot_score))
+                        except ValueError:
+                            pass
+                    return 0
+            
+            # 获取当前和之前的数值
+            curr_num = data.get('value1_num')
+            if curr_num is None:
+                curr_num = parse_hot_score(data['value1'])
+            
+            prev_num = previous_data.get('value1_num')
+            if prev_num is None:
+                prev_num = parse_hot_score(prev_value1)
+            
+            hot_change = curr_num - prev_num
+            hot_score_change_text = f"{hot_change:+d}"
+        except Exception as e:
+            print(f"Error calculating hot score change: {e}")
+            hot_score_change_text = "N/A"
+    else:
+        hot_score_change_text = "N/A"
+    
+    # 计算评论变化值的纯文本形式
+    reply_count_change_text = "N/A"
+    if previous_data and prev_value3 != "N/A":
+        try:
+            reply_change = int(data.get('value3', '0')) - int(prev_value3)
+            reply_count_change_text = f"{reply_change:+d}"
+        except:
+            reply_count_change_text = "N/A"
+    else:
+        reply_count_change_text = "N/A"
+    
+    # 生成摘要HTML
+    summary_html = ""
+    if previous_data:
+        # 热度变化颜色
+        hot_color = "red" if hot_score_change_text.startswith('+') else "green" if hot_score_change_text.startswith('-') else "gray"
+        # 评论变化颜色
+        reply_color = "red" if reply_count_change_text.startswith('+') else "green" if reply_count_change_text.startswith('-') else "gray"
+        
+        summary_html = f"""
+        <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin-bottom: 20px;">
+            <h3 style="margin-top: 0; color: #343a40;">摘要</h3>
+            <p style="font-size: 16px; line-height: 1.5;">
+                关卡热度相比上一时段变化为 <span style="color: {hot_color}; font-weight: bold;">{hot_score_change_text}</span>，
+                评论变化为 <span style="color: {reply_color}; font-weight: bold;">{reply_count_change_text}</span>
+            </p>
+        </div>
+        """
+    
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -73,6 +148,7 @@ def generate_email_content(data, previous_data, source=None):
     </head>
     <body>
         <h2>UGC Monitor Update</h2>
+        {summary_html}
         <h3>Key Changes</h3>
         <table>
             <tr>
