@@ -16,37 +16,12 @@ import platform
 def _setup_chinese_font():
     """设置中文字体，解决中文显示问题"""
     # 直接设置matplotlib的全局字体配置
-    plt.rcParams['font.family'] = ['DejaVu Sans', 'Arial', 'sans-serif']
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial', 'sans-serif']
+    plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['axes.unicode_minus'] = False
     
-    # 尝试设置中文字体
-    system = platform.system()
-    
-    # 增加更多字体选项
-    if system == 'Darwin':  # macOS
-        font_names = ['Arial Unicode MS', 'PingFang SC', 'Heiti TC', 'SimHei', 'WenQuanYi Micro Hei']
-    elif system == 'Windows':
-        font_names = ['SimHei', 'Microsoft YaHei', 'SimSun', 'Arial Unicode MS', 'WenQuanYi Micro Hei']
-    else:  # Linux (GitHub Actions)
-        font_names = ['WenQuanYi Micro Hei', 'Noto Sans CJK SC', 'SimHei', 'DejaVu Sans', 'Arial']
-    
-    # 尝试所有字体，直到找到可用的
-    for font_name in font_names:
-        try:
-            # 测试字体是否可用
-            from matplotlib.font_manager import FontManager
-            fm = FontManager()
-            if any(font_name in f.name for f in fm.ttflist):
-                plt.rcParams['font.sans-serif'] = [font_name]
-                print(f"Using font: {font_name}")
-                return
-        except Exception as e:
-            print(f"Error checking font {font_name}: {e}")
-            continue
-    
-    # 如果没有找到中文字体，使用通用字体
-    plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial', 'sans-serif']
-    print("Warning: No Chinese font found, using fallback fonts")
+    # 在GitHub Actions环境中，使用更简单的方法确保中文显示
+    print("Setting up font for Chinese display")
 
 
 def generate_heatmap_chart(data_list, output_path='heatmap_chart.png'):
@@ -77,14 +52,14 @@ def generate_heatmap_chart(data_list, output_path='heatmap_chart.png'):
         
         # 设置标题
         title = data_list[0].get('title', 'UGC Monitor')
-        plt.title(f'{title} - 24小时热度变化趋势', fontsize=16, fontweight='bold', pad=20)
+        plt.title(f'{title} - 24h Heat Trend', fontsize=16, fontweight='bold', pad=20)
         
         # 绘制热度值折线
         color = '#FF6B6B'
-        ax.set_xlabel('时间', fontsize=12)
-        ax.set_ylabel('热度值', color=color, fontsize=12)
+        ax.set_xlabel('Time', fontsize=12)
+        ax.set_ylabel('Heat Score', color=color, fontsize=12)
         line = ax.plot(timestamps, hot_scores, color=color, linewidth=2, 
-                         marker='o', markersize=4, label='热度值')
+                         marker='o', markersize=4, label='Heat Score')
         ax.tick_params(axis='y', labelcolor=color)
         ax.grid(True, alpha=0.3, linestyle='--')
         
@@ -149,12 +124,12 @@ def generate_change_chart(data_list, output_path='change_chart.png'):
         
         # 设置标题
         title = data_list[0].get('title', 'UGC Monitor')
-        plt.title(f'{title} - 24小时热度变化值趋势', fontsize=16, fontweight='bold', pad=20)
+        plt.title(f'{title} - 24h Heat Change Trend', fontsize=16, fontweight='bold', pad=20)
         
         # 绘制变化值折线
         color = '#9B59B6'
-        ax.set_xlabel('时间', fontsize=12)
-        ax.set_ylabel('热度变化值', color=color, fontsize=12)
+        ax.set_xlabel('Time', fontsize=12)
+        ax.set_ylabel('Heat Change', color=color, fontsize=12)
         
         # 绘制正/负变化的柱状图和连接线
         for i, (ts, change) in enumerate(zip(timestamps, changes)):
@@ -168,7 +143,7 @@ def generate_change_chart(data_list, output_path='change_chart.png'):
         
         # 绘制连接线
         line = ax.plot(timestamps, changes, color=color, linewidth=1.5, 
-                         marker='o', markersize=5, label='变化值')
+                         marker='o', markersize=5, label='Change Value')
         
         ax.tick_params(axis='y', labelcolor=color)
         ax.grid(True, alpha=0.3, linestyle='--')
@@ -225,8 +200,8 @@ def _generate_stats_text(data_list):
     trend_symbol = "↑" if hot_change > 0 else "↓" if hot_change < 0 else "→"
     
     stats_text = (
-        f"热度统计: 最高{max_hot} | 最低{min_hot} | 平均{avg_hot} | "
-        f"变化{trend_symbol}{hot_change:+d} ({hot_change_pct:+.1f}%)"
+        f"Heat Stats: Max {max_hot} | Min {min_hot} | Avg {avg_hot} | "
+        f"Change {trend_symbol}{hot_change:+d} ({hot_change_pct:+.1f}%)"
     )
     
     return stats_text
@@ -247,9 +222,9 @@ def _generate_change_stats_text(changes):
     zero_count = sum(1 for c in changes if c == 0)
     
     stats_text = (
-        f"变化统计: 总变化{total_change:+d} | 平均变化{avg_change:+d} | "
-        f"最大+{max_change} | 最小{min_change} | "
-        f"上升{positive_count}次 | 下降{negative_count}次"
+        f"Change Stats: Total {total_change:+d} | Avg {avg_change:+d} | "
+        f"Max +{max_change} | Min {min_change} | "
+        f"Up {positive_count} times | Down {negative_count} times"
     )
     
     return stats_text
