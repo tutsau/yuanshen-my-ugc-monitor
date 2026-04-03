@@ -61,6 +61,10 @@ def generate_email_content(data, previous_data, source=None):
         'workflow-push': 'GitHub Actions Push 触发'
     }.get(source, '未知来源')
     
+    # 初始化前一个值变量
+    prev_value1 = previous_data['value1'] if previous_data else "N/A"
+    prev_value3 = previous_data['value3'] if previous_data else "N/A"
+    
     # 计算热度变化值和评论变化值的纯文本形式（用于摘要）
     hot_score_change_text = "N/A"
     if previous_data and prev_value1 != "N/A":
@@ -166,7 +170,6 @@ def generate_email_content(data, previous_data, source=None):
     
     # 处理热度值
     value1_html = data['value1']
-    prev_value1 = previous_data['value1'] if previous_data else "N/A"
     if previous_data and data['value1'] != previous_data['value1']:
         value1_html = f"<span class='highlight'>{data['value1']}</span>"
     
@@ -225,7 +228,6 @@ def generate_email_content(data, previous_data, source=None):
     
     # 处理评论总数
     value3_html = data.get('value3', 'N/A')
-    prev_value3 = previous_data.get('value3', 'N/A') if previous_data else "N/A"
     if previous_data and data.get('value3') != previous_data.get('value3'):
         value3_html = f"<span class='highlight'>{data.get('value3', 'N/A')}</span>"
     
