@@ -15,25 +15,38 @@ import platform
 
 def _setup_chinese_font():
     """设置中文字体，解决中文显示问题"""
+    # 直接设置matplotlib的全局字体配置
+    plt.rcParams['font.family'] = ['DejaVu Sans', 'Arial', 'sans-serif']
+    plt.rcParams['axes.unicode_minus'] = False
+    
+    # 尝试设置中文字体
     system = platform.system()
     
+    # 增加更多字体选项
     if system == 'Darwin':  # macOS
-        font_names = ['Arial Unicode MS', 'PingFang SC', 'Heiti TC']
+        font_names = ['Arial Unicode MS', 'PingFang SC', 'Heiti TC', 'SimHei', 'WenQuanYi Micro Hei']
     elif system == 'Windows':
-        font_names = ['SimHei', 'Microsoft YaHei', 'SimSun']
-    else:  # Linux
-        font_names = ['WenQuanYi Micro Hei', 'Noto Sans CJK SC']
+        font_names = ['SimHei', 'Microsoft YaHei', 'SimSun', 'Arial Unicode MS', 'WenQuanYi Micro Hei']
+    else:  # Linux (GitHub Actions)
+        font_names = ['WenQuanYi Micro Hei', 'Noto Sans CJK SC', 'SimHei', 'DejaVu Sans', 'Arial']
     
+    # 尝试所有字体，直到找到可用的
     for font_name in font_names:
         try:
-            plt.rcParams['font.sans-serif'] = [font_name]
-            plt.rcParams['axes.unicode_minus'] = False
-            print(f"Using font: {font_name}")
-            return
-        except:
+            # 测试字体是否可用
+            from matplotlib.font_manager import FontManager
+            fm = FontManager()
+            if any(font_name in f.name for f in fm.ttflist):
+                plt.rcParams['font.sans-serif'] = [font_name]
+                print(f"Using font: {font_name}")
+                return
+        except Exception as e:
+            print(f"Error checking font {font_name}: {e}")
             continue
     
-    print("Warning: No Chinese font found, Chinese text may not display correctly")
+    # 如果没有找到中文字体，使用通用字体
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial', 'sans-serif']
+    print("Warning: No Chinese font found, using fallback fonts")
 
 
 def generate_heatmap_chart(data_list, output_path='heatmap_chart.png'):
