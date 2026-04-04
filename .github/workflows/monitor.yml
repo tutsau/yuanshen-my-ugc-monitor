@@ -3,7 +3,7 @@ name: UGC Monitor - json-store
 on:
   schedule:
     - cron: '0,30 * * * *'  # 每个小时的00分和30分执行监控
-    - cron: '0 0,12 * * *'   # 每天00:00和12:00执行日报
+    - cron: '0 16,4 * * *'   # 每天用户时区的00:00和12:00执行日报（UTC+8）
   workflow_dispatch:  # 允许手动触发
     inputs:
       task_type:
