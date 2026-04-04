@@ -38,7 +38,7 @@ jobs:
           python -m pip install requests matplotlib
           
       - name: Run monitor script
-        if: github.event.schedule != '0 8 * * *' && github.event.inputs.task_type != 'daily-report'
+        if: github.event.schedule != '0 16,4 * * *' && github.event.inputs.task_type != 'daily-report'
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
@@ -51,7 +51,7 @@ jobs:
         run: python monitor_all.py
         
       - name: Run daily report
-        if: github.event.schedule == '0 8 * * *' || github.event.inputs.task_type == 'daily-report'
+        if: github.event.schedule == '0 16,4 * * *' || github.event.inputs.task_type == 'daily-report'
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
