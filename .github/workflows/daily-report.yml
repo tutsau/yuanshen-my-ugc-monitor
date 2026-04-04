@@ -1,23 +1,20 @@
-name: UGC Monitor - json-store
+name: UGC Daily Report - json-store
 
 on:
   schedule:
-    - cron: '0,30 * * * *'  # 每个小时的00分和30分执行监控
+    - cron: '0 16,4 * * *'   # 每天用户时区的00:00和12:00执行日报（UTC+8）
   workflow_dispatch:  # 允许手动触发
     inputs:
       task_type:
         description: 'Task type to run'
         required: true
-        default: 'monitor'
+        default: 'daily-report'
         type: choice
         options:
-          - monitor
-  push:
-    branches:
-      - feat/json-store  # 在feat/json-store分支push时自动执行
+          - daily-report
 
 jobs:
-  monitor:
+  daily-report:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -35,7 +32,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install requests matplotlib
           
-      - name: Run monitor script
+      - name: Run daily report
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
@@ -45,4 +42,4 @@ jobs:
           MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
           DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER || 'tutsau' }}
           DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME || 'yuanshen-my-ugc-monitor-data' }}
-        run: python monitor_all.py
+        run: python monitor_all.py --daily-report
