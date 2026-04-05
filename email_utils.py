@@ -34,9 +34,30 @@ def generate_email_subject(data, previous_data=None, monitor_id=None):
     prefix = "【千星奇域】"
     
     if previous_data:
-        hot_score_change = "↑" if data['value1'] > previous_data.get('value1', '0') else "↓" if data['value1'] < previous_data.get('value1', '0') else "-"
-        reply_count_change = "↑" if data.get('value3', '0') > previous_data.get('value3', '0') else "↓" if data.get('value3', '0') < previous_data.get('value3', '0') else "-"
-        subject = f"{prefix}{data['title']} 热度{hot_score_change}{data['value1']} 评论{reply_count_change}{data.get('value3', '0')}"
+        # 计算热度变化值
+        try:
+            # 获取当前和之前的数值
+            curr_hot_num = data.get('value1_num')
+            if curr_hot_num is None:
+                curr_hot_num = parse_hot_score(data['value1'])
+            
+            prev_hot_num = previous_data.get('value1_num')
+            if prev_hot_num is None:
+                prev_hot_num = parse_hot_score(previous_data.get('value1', '0'))
+            
+            hot_change = curr_hot_num - prev_hot_num
+            hot_change_str = f"{hot_change:+d}"
+        except Exception as e:
+            hot_change_str = "N/A"
+        
+        # 计算评论变化值
+        try:
+            reply_change = int(data.get('value3', '0')) - int(previous_data.get('value3', '0'))
+            reply_change_str = f"{reply_change:+d}"
+        except Exception as e:
+            reply_change_str = "N/A"
+        
+        subject = f"{prefix}{data['title']} 热度{hot_change_str} 评论{reply_change_str}"
     else:
         subject = f"{prefix}{data['title']} 热度{data['value1']} 评论{data.get('value3', '0')}"
     return subject
