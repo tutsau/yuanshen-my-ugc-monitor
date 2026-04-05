@@ -8,7 +8,7 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
 import platform
 
@@ -22,6 +22,30 @@ def _setup_chinese_font():
     
     # 在GitHub Actions环境中，使用更简单的方法确保中文显示
     print("Setting up font for Chinese display")
+
+
+def _convert_to_gmt8(dt):
+    """将时间转换为GMT+8时区
+    
+    Args:
+        dt:  datetime对象
+    
+    Returns:
+        datetime: 转换后的datetime对象
+    """
+    # 创建GMT+8时区
+    gmt8 = timezone(timedelta(hours=8))
+    
+    # 确保dt是datetime对象
+    if isinstance(dt, str):
+        dt = datetime.fromisoformat(dt)
+    
+    # 如果dt没有时区信息，假设它是UTC时间
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    
+    # 转换为GMT+8
+    return dt.astimezone(gmt8)
 
 
 def generate_heatmap_chart(data_list, output_path='heatmap_chart.png'):
@@ -43,8 +67,8 @@ def generate_heatmap_chart(data_list, output_path='heatmap_chart.png'):
         # 设置中文字体
         _setup_chinese_font()
         
-        # 准备数据
-        timestamps = [datetime.fromisoformat(item['timestamp']) for item in data_list]
+        # 准备数据，转换为GMT+8时区
+        timestamps = [_convert_to_gmt8(datetime.fromisoformat(item['timestamp'])) for item in data_list]
         hot_scores = [item['hot_score'] for item in data_list]
         
         # 创建图表
@@ -111,8 +135,8 @@ def generate_change_chart(data_list, output_path='change_chart.png'):
         # 设置中文字体
         _setup_chinese_font()
         
-        # 准备数据：计算变化值
-        timestamps = [datetime.fromisoformat(item['timestamp']) for item in data_list[1:]]  # 从第二个数据点开始
+        # 准备数据：计算变化值，转换为GMT+8时区
+        timestamps = [_convert_to_gmt8(datetime.fromisoformat(item['timestamp'])) for item in data_list[1:]]  # 从第二个数据点开始
         hot_scores = [item['hot_score'] for item in data_list]
         changes = []
         for i in range(1, len(hot_scores)):

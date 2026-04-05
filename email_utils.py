@@ -437,7 +437,18 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
     for i, data in enumerate(data_list):
         if i == 0:
             # 第一个数据点，没有变化值
-            time_str = data['timestamp'].split('T')[1].split('.')[0]
+            # 转换时间为GMT+8
+            from datetime import datetime, timezone, timedelta
+            timestamp = data['timestamp']
+            dt = datetime.fromisoformat(timestamp)
+            # 创建GMT+8时区
+            gmt8 = timezone(timedelta(hours=8))
+            # 确保dt有时区信息
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            # 转换为GMT+8
+            dt_gmt8 = dt.astimezone(gmt8)
+            time_str = dt_gmt8.strftime('%H:%M:%S')
             hot_score = data['hot_score']
             html += f"""
                         <tr>
@@ -450,7 +461,18 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
             # 计算变化值
             prev_data = data_list[i-1]
             change = data['hot_score'] - prev_data['hot_score']
-            time_str = data['timestamp'].split('T')[1].split('.')[0]
+            # 转换时间为GMT+8
+            from datetime import datetime, timezone, timedelta
+            timestamp = data['timestamp']
+            dt = datetime.fromisoformat(timestamp)
+            # 创建GMT+8时区
+            gmt8 = timezone(timedelta(hours=8))
+            # 确保dt有时区信息
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            # 转换为GMT+8
+            dt_gmt8 = dt.astimezone(gmt8)
+            time_str = dt_gmt8.strftime('%H:%M:%S')
             hot_score = data['hot_score']
             
             if change > 0:
