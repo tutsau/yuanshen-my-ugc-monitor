@@ -295,20 +295,31 @@ def get_last_24h_data(monitor_id=None):
                 record_datetime_str = f"{date_data['date']}T{record['time']}"
                 record_datetime = datetime.datetime.fromisoformat(record_datetime_str)
                 
-                # 只保留最近24小时的数据
-                if (now - record_datetime) <= datetime.timedelta(hours=24):
-                    # 转换为统一的格式
-                    all_records.append({
-                        "timestamp": record_datetime.isoformat(),
-                        "hot_score": record["hot_score"],
-                        "reply_count": record["reply_count"],
-                        "good_rate": record["good_rate"],
-                        "title": date_data.get("title", ""),
-                        "level_id": date_data.get("level_id", "")
-                    })
+                # 先收集所有记录
+                all_records.append({
+                    "timestamp": record_datetime.isoformat(),
+                    "hot_score": record["hot_score"],
+                    "reply_count": record["reply_count"],
+                    "good_rate": record["good_rate"],
+                    "title": date_data.get("title", ""),
+                    "level_id": date_data.get("level_id", "")
+                })
     
     # 按时间排序
     all_records.sort(key=lambda x: x["timestamp"])
+    
+    # 如果有数据，以最新数据的时间戳为基准，向前计算24小时
+    if all_records:
+        # 获取最新数据的时间戳
+        latest_record = all_records[-1]
+        latest_timestamp = datetime.datetime.fromisoformat(latest_record["timestamp"])
+        
+        # 计算24小时前的时间
+        start_time = latest_timestamp - datetime.timedelta(hours=24)
+        
+        # 只保留在这个时间范围内的数据
+        all_records = [record for record in all_records if 
+                     datetime.datetime.fromisoformat(record["timestamp"]) >= start_time]
     
     return all_records
 
