@@ -126,12 +126,20 @@ def generate_email_content(data, previous_data, source=None):
         # 评论变化颜色
         reply_color = "red" if reply_count_change_text.startswith('+') else "green" if reply_count_change_text.startswith('-') else "gray"
         
+        # 获取原始热度值和当前热度值
+        prev_hot = previous_data.get('value1', 'N/A')
+        current_hot = data.get('value1', 'N/A')
+        
+        # 获取原始评论数和当前评论数
+        prev_reply = previous_data.get('value3', 'N/A')
+        current_reply = data.get('value3', 'N/A')
+        
         summary_html = f"""
         <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin-bottom: 20px;">
             <h3 style="margin-top: 0; color: #343a40;">摘要</h3>
             <p style="font-size: 16px; line-height: 1.5;">
-                关卡热度相比上一时段变化为 <span style="color: {hot_color}; font-weight: bold;">{hot_score_change_text}</span>，
-                评论变化为 <span style="color: {reply_color}; font-weight: bold;">{reply_count_change_text}</span>
+                热度总量{prev_hot} -&gt; {current_hot}， <span style="color: {hot_color}; font-weight: bold;">{hot_score_change_text}</span> ｜
+                评论总量{prev_reply} -&gt; {current_reply}
             </p>
         </div>
         """
