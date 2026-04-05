@@ -412,6 +412,69 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
                 </tbody>
             </table>
             
+            <div class="chart-section">
+                <h3>📋 各时段变化值</h3>
+                <table class="details-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>热度值</th>
+                            <th>变化值</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    """
+    
+    # 生成各时段变化值表格
+    for i, data in enumerate(data_list):
+        if i == 0:
+            # 第一个数据点，没有变化值
+            time_str = data['timestamp'].split('T')[1].split('.')[0]
+            hot_score = data['hot_score']
+            html += f"""
+                        <tr>
+                            <td>{time_str}</td>
+                            <td>{hot_score:,}</td>
+                            <td><span style="color: gray;">N/A</span></td>
+                        </tr>
+            """
+        else:
+            # 计算变化值
+            prev_data = data_list[i-1]
+            change = data['hot_score'] - prev_data['hot_score']
+            time_str = data['timestamp'].split('T')[1].split('.')[0]
+            hot_score = data['hot_score']
+            
+            if change > 0:
+                html += f"""
+                        <tr>
+                            <td>{time_str}</td>
+                            <td>{hot_score:,}</td>
+                            <td><span style="color: green; font-weight: bold;">+{change}</span></td>
+                        </tr>
+                """
+            elif change < 0:
+                html += f"""
+                        <tr>
+                            <td>{time_str}</td>
+                            <td>{hot_score:,}</td>
+                            <td><span style="color: red; font-weight: bold;">{change}</span></td>
+                        </tr>
+                """
+            else:
+                html += f"""
+                        <tr>
+                            <td>{time_str}</td>
+                            <td>{hot_score:,}</td>
+                            <td><span style="color: gray;">0</span></td>
+                        </tr>
+                """
+    
+    html += f"""
+                    </tbody>
+                </table>
+            </div>
+            
             <div class="footer">
                 <p>监控地址: <a href="{url}">{url}</a></p>
                 <p>生成时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
