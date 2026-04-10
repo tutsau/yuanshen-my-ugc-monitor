@@ -4,6 +4,9 @@ local_config.py
 # Data file
 previous_data.json
 
+# cURL files with sensitive information
+cURL/metrics.txt
+
 # Python cache
 __pycache__/
 *.pyc

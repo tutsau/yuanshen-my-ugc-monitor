@@ -414,6 +414,50 @@ def generate_email_content(data, previous_data, source=None):
     return html
 
 
+def load_trend_data(monitor_id=None):
+    """加载趋势数据
+    
+    Args:
+        monitor_id: 监控器ID
+    
+    Returns:
+        趋势数据
+    """
+    import json
+    import requests
+    import base64
+    
+    # 从data_manager模块导入配置获取函数
+    from data_manager import _get_config
+    
+    config = _get_config()
+    token = config['GITHUB_TOKEN']
+    owner = config['DATA_REPO_OWNER']
+    repo = config['DATA_REPO_NAME']
+    
+    # 构建趋势数据文件路径
+    trend_data_path = f"data/{monitor_id}/trend_data.json" if monitor_id else "data/trend_data.json"
+    
+    # 构建API URL
+    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{trend_data_path}"
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    # 发送请求
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        data = response.json()
+        content = base64.b64decode(data['content']).decode('utf-8')
+        trend_data = json.loads(content)
+        return trend_data.get('trend_data', {})
+    else:
+        print(f"Failed to load trend data: {response.status_code} - {response.text}")
+        return {}
+
+
 def generate_daily_report_email(data_list, statistics, monitor_id=None):
     """生成每日报告邮件的HTML内容和主题
     
@@ -430,6 +474,9 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
     title = latest_data.get('title', 'UGC Monitor')
     level_id = latest_data.get('level_id', '105949017109')
     
+    # 加载趋势数据
+    trend_data = load_trend_data(monitor_id)
+    
     # 生成主题，统一使用【千星奇域日报】格式
     today = datetime.datetime.now().strftime("%m月%d日")
     prefix = "【千星奇域日报】"
@@ -443,6 +490,13 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
     hot_change = latest_data['hot_score'] - first_data['hot_score']
     hot_change_pct = (hot_change / first_data['hot_score'] * 100) if first_data['hot_score'] > 0 else 0
     trend_symbol = "📈" if hot_change > 0 else "📉" if hot_change < 0 else "➡️"
+    
+    # 计算真实热度变化（如果有真实热度值）
+    real_hot_change = 0
+    real_trend_symbol = "➡️"
+    if 'real_hot_score' in latest_data and 'real_hot_score' in first_data:
+        real_hot_change = latest_data['real_hot_score'] - first_data['real_hot_score']
+        real_trend_symbol = "📈" if real_hot_change > 0 else "📉" if real_hot_change < 0 else "➡️"
     
     # 计算评论数变化
     reply_change = latest_data.get('reply_count', 0) - first_data.get('reply_count', 0)
@@ -463,7 +517,7 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
             .header {{ text-align: center; border-bottom: 3px solid #FF6B6B; padding-bottom: 20px; margin-bottom: 30px; }}
             .header h1 {{ color: #FF6B6B; margin: 0; font-size: 28px; }}
             .header p {{ color: #666; margin: 10px 0 0 0; }}
-            .stats-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0; }}
+            .stats-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 30px 0; }}
             .stat-card {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; }}
             .stat-card.hot {{ background: linear-gradient(135deg, #FF6B6B 0%, #ee5a5a 100%); }}
             .stat-card.trend {{ background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }}
@@ -479,6 +533,9 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
             .footer {{ text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 12px; }}
             .trend-up {{ color: #28a745; font-weight: bold; }}
             .trend-down {{ color: #dc3545; font-weight: bold; }}
+            .trend-section {{ margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 10px; }}
+            .trend-section h3 {{ color: #333; margin-top: 0; }}
+            .trend-item {{ margin: 10px 0; padding: 10px; background-color: white; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
         </style>
     </head>
     <body>
@@ -494,6 +551,11 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
                     <div class="stat-value">{latest_data['hot_score']:,}</div>
                     <div class="stat-label">{trend_symbol} {hot_change:+d} ({hot_change_pct:+.1f}%)</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-label">真实热度</div>
+                    <div class="stat-value">{latest_data.get('real_hot_score', 'N/A'):,}</div>
+                    <div class="stat-label">{real_trend_symbol} {real_hot_change:+d}</div>
+                </div>
                 <div class="stat-card trend">
                     <div class="stat-label">当前评论</div>
                     <div class="stat-value">{latest_data.get('reply_count', 0):,}</div>
@@ -504,6 +566,42 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
                     <div class="stat-value">{statistics['data_points']}</div>
                     <div class="stat-label">过去24小时</div>
                 </div>
+            </div>
+            
+            <!-- 官方趋势数据 -->
+            <div class="trend-section">
+                <h3>📋 官方趋势数据</h3>
+            """
+    
+    # 添加趋势数据
+    if trend_data:
+        for metric_type, metric_data in trend_data.items():
+            # 转换metric_type为可读格式
+            if metric_type == 'METRIC_STAGE_TYPE_REVIEW_TOTAL':
+                metric_name = '评测总数'
+            elif metric_type == 'METRIC_STAGE_TYPE_STAGE_HOT_SCORE':
+                metric_name = '真实热度值'
+            elif metric_type == 'METRIC_STAGE_TYPE_GOOD_RATE':
+                metric_name = '好评率'
+            elif metric_type == 'METRIC_STAGE_TYPE_AVG_TIME':
+                metric_name = '平均游戏时间（秒）'
+            else:
+                metric_name = metric_type
+            
+            # 获取7天和30天变化
+            delta_7_day = metric_data.get('delta_7_day', 'N/A')
+            delta_30_day = metric_data.get('delta_30_day', 'N/A')
+            
+            html += f"""
+                <div class="trend-item">
+                    <strong>{metric_name}</strong>: 7天变化 {delta_7_day} | 30天变化 {delta_30_day}
+                </div>
+            """
+    else:
+        html += "<p>暂无官方趋势数据</p>"
+    
+    # 继续构建HTML内容
+    html += f"""
             </div>
             
             <div class="chart-section">
@@ -529,6 +627,7 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
                     <tr>
                         <th>统计项</th>
                         <th>热度值</th>
+                        <th>真实热度</th>
                         <th>评论数</th>
                     </tr>
                 </thead>
@@ -536,16 +635,19 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
                     <tr>
                         <td>📊 平均值</td>
                         <td>{statistics['avg_hot_score']:,}</td>
+                        <td>{statistics.get('avg_real_hot_score', 'N/A'):,}</td>
                         <td>{statistics['avg_reply_count']:,}</td>
                     </tr>
                     <tr>
                         <td>⬆️ 最高值</td>
                         <td>{statistics['max_hot_score']:,}</td>
+                        <td>{statistics.get('max_real_hot_score', 'N/A'):,}</td>
                         <td>{statistics['max_reply_count']:,}</td>
                     </tr>
                     <tr>
                         <td>⬇️ 最低值</td>
                         <td>{statistics['min_hot_score']:,}</td>
+                        <td>{statistics.get('min_real_hot_score', 'N/A'):,}</td>
                         <td>{statistics['min_reply_count']:,}</td>
                     </tr>
                 </tbody>
@@ -561,6 +663,8 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
                             <th>时间</th>
                             <th>热度值</th>
                             <th>热度变化</th>
+                            <th>真实热度</th>
+                            <th>真实热度变化</th>
                             <th>评论数</th>
                             <th>评论变化</th>
                         </tr>
@@ -594,6 +698,8 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
                             <td>{time_str}</td>
                             <td>{hot_score:,}</td>
                             <td><span style="color: gray;">N/A</span></td>
+                            <td>{data.get('real_hot_score', 'N/A'):,}</td>
+                            <td><span style="color: gray;">N/A</span></td>
                             <td>{data.get('reply_count', 0):,}</td>
                             <td><span style="color: gray;">N/A</span></td>
                         </tr>
@@ -602,6 +708,10 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
             # 计算变化值
             prev_data = data_list[i-1]
             change = data['hot_score'] - prev_data['hot_score']
+            # 计算真实热度变化值
+            real_hot_change = 0
+            if 'real_hot_score' in data and 'real_hot_score' in prev_data:
+                real_hot_change = data['real_hot_score'] - prev_data['real_hot_score']
             # 计算评论数变化值
             reply_change = data.get('reply_count', 0) - prev_data.get('reply_count', 0)
             # 转换时间为GMT+8
@@ -622,35 +732,51 @@ def generate_daily_report_email(data_list, statistics, monitor_id=None):
             time_str = dt_gmt8.strftime('%H:%M:%S')
             hot_score = data['hot_score']
             
+            # 生成真实热度变化的HTML
+            real_hot_change_html = "<span style='color: gray;'>N/A</span>"
+            if 'real_hot_score' in data and 'real_hot_score' in prev_data:
+                if real_hot_change > 0:
+                    real_hot_change_html = f"<span style='color: green; font-weight: bold;'>+{real_hot_change}</span>"
+                elif real_hot_change < 0:
+                    real_hot_change_html = f"<span style='color: red; font-weight: bold;'>{real_hot_change}</span>"
+                else:
+                    real_hot_change_html = "<span style='color: gray;'>0</span>"
+            
+            # 生成评论变化的HTML
+            reply_change_html = f"<span style='color: green; font-weight: bold;'>+{reply_change}</span>" if reply_change > 0 else f"<span style='color: red; font-weight: bold;'>{reply_change}</span>" if reply_change < 0 else "<span style='color: gray;'>0</span>"
+            
             if change > 0:
-                reply_change_html = f"<span style='color: green; font-weight: bold;'>+{reply_change}</span>" if reply_change > 0 else f"<span style='color: red; font-weight: bold;'>{reply_change}</span>" if reply_change < 0 else "<span style='color: gray;'>0</span>"
                 html += f"""
                         <tr>
                             <td>{time_str}</td>
                             <td>{hot_score:,}</td>
                             <td><span style="color: green; font-weight: bold;">+{change}</span></td>
+                            <td>{data.get('real_hot_score', 'N/A'):,}</td>
+                            <td>{real_hot_change_html}</td>
                             <td>{data.get('reply_count', 0):,}</td>
                             <td>{reply_change_html}</td>
                         </tr>
                 """
             elif change < 0:
-                reply_change_html = f"<span style='color: green; font-weight: bold;'>+{reply_change}</span>" if reply_change > 0 else f"<span style='color: red; font-weight: bold;'>{reply_change}</span>" if reply_change < 0 else "<span style='color: gray;'>0</span>"
                 html += f"""
                         <tr>
                             <td>{time_str}</td>
                             <td>{hot_score:,}</td>
                             <td><span style="color: red; font-weight: bold;">{change}</span></td>
+                            <td>{data.get('real_hot_score', 'N/A'):,}</td>
+                            <td>{real_hot_change_html}</td>
                             <td>{data.get('reply_count', 0):,}</td>
                             <td>{reply_change_html}</td>
                         </tr>
                 """
             else:
-                reply_change_html = f"<span style='color: green; font-weight: bold;'>+{reply_change}</span>" if reply_change > 0 else f"<span style='color: red; font-weight: bold;'>{reply_change}</span>" if reply_change < 0 else "<span style='color: gray;'>0</span>"
                 html += f"""
                         <tr>
                             <td>{time_str}</td>
                             <td>{hot_score:,}</td>
                             <td><span style="color: gray;">0</span></td>
+                            <td>{data.get('real_hot_score', 'N/A'):,}</td>
+                            <td>{real_hot_change_html}</td>
                             <td>{data.get('reply_count', 0):,}</td>
                             <td>{reply_change_html}</td>
                         </tr>

@@ -19,15 +19,15 @@ def _get_config():
     try:
         import local_config
         return {
-            'DATA_REPO_OWNER': local_config.DATA_REPO_OWNER,
-            'DATA_REPO_NAME': local_config.DATA_REPO_NAME,
-            'GITHUB_TOKEN': local_config.MY_GITHUB_TOKEN
+            'DATA_REPO_OWNER': getattr(local_config, 'DATA_REPO_OWNER', 'tutsau'),
+            'DATA_REPO_NAME': getattr(local_config, 'DATA_REPO_NAME', 'yuanshen-my-ugc-monitor-data'),
+            'GITHUB_TOKEN': getattr(local_config, 'GITHUB_TOKEN', None) or getattr(local_config, 'MY_GITHUB_TOKEN', None)
         }
     except ImportError:
         return {
             'DATA_REPO_OWNER': os.environ.get('DATA_REPO_OWNER', 'tutsau'),
             'DATA_REPO_NAME': os.environ.get('DATA_REPO_NAME', 'yuanshen-my-ugc-monitor-data'),
-            'GITHUB_TOKEN': os.environ.get('MY_GITHUB_TOKEN')
+            'GITHUB_TOKEN': os.environ.get('MY_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN')
         }
 
 
@@ -331,6 +331,9 @@ def calculate_statistics(data_list):
             "max_hot_score": 0,
             "min_hot_score": 0,
             "avg_hot_score": 0,
+            "max_real_hot_score": 0,
+            "min_real_hot_score": 0,
+            "avg_real_hot_score": 0,
             "max_reply_count": 0,
             "min_reply_count": 0,
             "avg_reply_count": 0,
@@ -340,10 +343,21 @@ def calculate_statistics(data_list):
     hot_scores = [item['hot_score'] for item in data_list]
     reply_counts = [item['reply_count'] for item in data_list]
     
+    # 提取真实热度值（如果有）
+    real_hot_scores = [item['real_hot_score'] for item in data_list if 'real_hot_score' in item and item['real_hot_score'] is not None]
+    
+    # 计算真实热度统计数据
+    max_real_hot = max(real_hot_scores) if real_hot_scores else 0
+    min_real_hot = min(real_hot_scores) if real_hot_scores else 0
+    avg_real_hot = sum(real_hot_scores) // len(real_hot_scores) if real_hot_scores else 0
+    
     return {
         "max_hot_score": max(hot_scores),
         "min_hot_score": min(hot_scores),
         "avg_hot_score": sum(hot_scores) // len(hot_scores),
+        "max_real_hot_score": max_real_hot,
+        "min_real_hot_score": min_real_hot,
+        "avg_real_hot_score": avg_real_hot,
         "max_reply_count": max(reply_counts),
         "min_reply_count": min(reply_counts),
         "avg_reply_count": sum(reply_counts) // len(reply_counts),

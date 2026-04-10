@@ -1,20 +1,20 @@
-name: UGC Daily Report - json-store
+name: UGC Metrics Check
 
 on:
   schedule:
-    - cron: '0 16,4 * * *'   # 每天用户时区的00:00和12:00执行日报（UTC+8）
+    - cron: '30 6 * * *'   # 每天6:30执行（UTC时间）
   workflow_dispatch:  # 允许手动触发
     inputs:
       task_type:
         description: 'Task type to run'
         required: true
-        default: 'daily-report'
+        default: 'metrics-check'
         type: choice
         options:
-          - daily-report
+          - metrics-check
 
 jobs:
-  daily-report:
+  metrics-check:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -30,9 +30,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install requests matplotlib
+          python -m pip install requests
           
-      - name: Run daily report
+      - name: Run metrics check script
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
@@ -42,4 +42,4 @@ jobs:
           MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
           DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER || 'tutsau' }}
           DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME || 'yuanshen-my-ugc-monitor-data' }}
-        run: python monitor.py --daily-report
+        run: python monitor.py --check-metrics-auth
